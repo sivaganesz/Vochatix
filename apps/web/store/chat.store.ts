@@ -17,6 +17,8 @@ interface ChatStore {
   addConversation: (conversation: Conversation) => void;
   updateConversation: (conversation: Conversation) => void;
   setActiveConversation: (id: string | null) => void;
+  markConversationAsRead: (conversationId: string) => void;
+  incrementUnreadCount: (conversationId: string) => void;
   setMessages: (conversationId: string, messages: Message[]) => void;
   addMessage: (message: Message) => void;
   addTypingUser: (userId: string, conversationId: string) => void;
@@ -42,6 +44,20 @@ export const useChatStore = create<ChatStore>((set) => ({
   updateConversation: (conversation) =>
     set((state) => ({
       conversations: state.conversations.map((c) => (c.id === conversation.id ? conversation : c)),
+    })),
+
+  markConversationAsRead: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId ? { ...c, unreadCount: 0 } : c
+      ),
+    })),
+
+  incrementUnreadCount: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversationId ? { ...c, unreadCount: (c.unreadCount ?? 0) + 1 } : c
+      ),
     })),
 
   setActiveConversation: (id) => set({ activeConversationId: id }),

@@ -39,4 +39,5 @@ export interface Conversation {
   updatedAt: string;
   members: ConversationMember[];
   messages: Message[];
+  unreadCount?: number;
 }

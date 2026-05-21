@@ -129,22 +129,29 @@ export function ConversationList() {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-900 truncate">
+                      <span className={`text-sm truncate ${conv.unreadCount ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>
                         {otherUser?.name ?? 'Unknown'}
                       </span>
                       {lastMessage && (
-                        <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                        <span className={`text-xs flex-shrink-0 ml-2 ${conv.unreadCount ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
                           {formatRelativeTime(lastMessage.createdAt)}
                         </span>
                       )}
                     </div>
-                    {lastMessage && (
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
-                        {lastMessage.type === 'CALL'
-                          ? `📞 ${lastMessage.text}`
-                          : lastMessage.text ?? ''}
+                    <div className="flex items-center justify-between mt-0.5">
+                      <p className={`text-xs truncate pr-2 ${conv.unreadCount ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
+                        {lastMessage ? (
+                          lastMessage.type === 'CALL' ? `📞 ${lastMessage.text}` : lastMessage.text ?? ''
+                        ) : (
+                          ''
+                        )}
                       </p>
-                    )}
+                      {conv.unreadCount && conv.unreadCount > 0 ? (
+                        <span className="flex-shrink-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center leading-none">
+                          {conv.unreadCount}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </button>
               );

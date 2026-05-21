@@ -28,11 +28,27 @@ export async function getConversations(userId: string) {
           sender: { select: { id: true, name: true } },
         },
       },
+      _count: {
+        select: {
+          messages: {
+            where: {
+              NOT: { senderId: userId },
+              status: { not: 'SEEN' },
+            },
+          },
+        },
+      },
     },
     orderBy: { updatedAt: 'desc' },
   });
 
-  return conversations;
+  return conversations.map(conv => {
+    const { _count, ...rest } = conv;
+    return {
+      ...rest,
+      unreadCount: _count.messages,
+    };
+  });
 }
 
 export async function createDirectConversation(userId: string, targetUserId: string) {
@@ -72,10 +88,26 @@ export async function createDirectConversation(userId: string, targetUserId: str
         take: 1,
         include: { sender: { select: { id: true, name: true } } },
       },
+      _count: {
+        select: {
+          messages: {
+            where: {
+              NOT: { senderId: userId },
+              status: { not: 'SEEN' },
+            },
+          },
+        },
+      },
     },
   });
 
-  if (existing) return existing;
+  if (existing) {
+    const { _count, ...rest } = existing;
+    return {
+      ...rest,
+      unreadCount: _count.messages,
+    };
+  }
 
   // Create new conversation
   const conversation = await prisma.conversation.create({
@@ -105,10 +137,24 @@ export async function createDirectConversation(userId: string, targetUserId: str
         take: 1,
         include: { sender: { select: { id: true, name: true } } },
       },
+      _count: {
+        select: {
+          messages: {
+            where: {
+              NOT: { senderId: userId },
+              status: { not: 'SEEN' },
+            },
+          },
+        },
+      },
     },
   });
 
-  return conversation;
+  const { _count, ...rest } = conversation;
+  return {
+    ...rest,
+    unreadCount: _count.messages,
+  };
 }
 
 export async function getConversationById(conversationId: string, userId: string) {
@@ -132,11 +178,26 @@ export async function getConversationById(conversationId: string, userId: string
           },
         },
       },
+      _count: {
+        select: {
+          messages: {
+            where: {
+              NOT: { senderId: userId },
+              status: { not: 'SEEN' },
+            },
+          },
+        },
+      },
     },
   });
 
   if (!conversation) throw new ApiError(404, 'Conversation not found');
-  return conversation;
+  
+  const { _count, ...rest } = conversation;
+  return {
+    ...rest,
+    unreadCount: _count.messages,
+  };
 }
 
 export async function validateConversationMembership(

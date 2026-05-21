@@ -63,3 +63,19 @@ export async function createSystemMessage(
     },
   });
 }
+
+export async function markMessagesAsRead(conversationId: string, userId: string) {
+  const isMember = await validateConversationMembership(conversationId, userId);
+  if (!isMember) throw new ApiError(403, 'Not a member of this conversation');
+
+  const result = await prisma.message.updateMany({
+    where: {
+      conversationId,
+      NOT: { senderId: userId },
+      status: { not: 'SEEN' },
+    },
+    data: { status: 'SEEN' },
+  });
+
+  return result.count;
+}

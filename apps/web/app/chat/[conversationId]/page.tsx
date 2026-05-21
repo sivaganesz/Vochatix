@@ -63,6 +63,14 @@ export default function ConversationPage({ params }: ConversationPageProps) {
     }
   }, [conversationId, isAuthenticated, authLoading, router]);
 
+  // Mark messages as read when viewing the conversation
+  useEffect(() => {
+    if (isAuthenticated && messages.length > 0) {
+      api.post(`/api/conversations/${conversationId}/messages/read`).catch(() => {});
+      useChatStore.getState().markConversationAsRead(conversationId);
+    }
+  }, [messages.length, conversationId, isAuthenticated]);
+
   if (authLoading || isLoadingConv) {
     return (
       <div className="flex-1 flex items-center justify-center">

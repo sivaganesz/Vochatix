@@ -36,8 +36,48 @@ export function SocketProvider({ children }: SocketProviderProps) {
     });
 
     // Messages
-    socket.on(SOCKET_EVENTS.MESSAGE_NEW, ({ message }: { message: Message }) => {
+    socket.on(SOCKET_EVENTS.MESSAGE_NEW, async ({ message }: { message: Message }) => {
       addMessage(message);
+      
+      const { 
+        activeConversationId, 
+        incrementUnreadCount, 
+        conversations, 
+        updateConversation, 
+        addConversation 
+      } = useChatStore.getState();
+      const currentUserId = useAuthStore.getState().user?.id;
+      
+      const existingConv = conversations.find((c) => c.id === message.conversationId);
+      
+      if (existingConv) {
+        // Update the conversation's last message and timestamp for the list
+        updateConversation({
+          ...existingConv,
+          messages: [message],
+          updatedAt: message.createdAt,
+        });
+      } else {
+        // It's a new conversation from someone else, fetch it and add to list
+        try {
+          // We need to import api, wait we don't have api imported here. 
+          // Let's import api at the top if it's not there, or dynamically import it.
+          const api = (await import('@/lib/api')).default;
+          const response = await api.get(`/api/conversations/${message.conversationId}`);
+          if (response.data?.data?.conversation) {
+            addConversation(response.data.data.conversation);
+          }
+        } catch (err) {
+          console.error('Failed to fetch new conversation', err);
+        }
+      }
+
+      if (
+        message.senderId !== currentUserId &&
+        message.conversationId !== activeConversationId
+      ) {
+        incrementUnreadCount(message.conversationId);
+      }
     });
 
     // Typing
