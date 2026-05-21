@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { useCallStore } from '@/store/call.store';
 import { useCalls } from '@/hooks/useCalls';
 import { IncomingCallModal } from '@/components/call/IncomingCallModal';
+import { CallingScreen } from '@/components/call/CallingScreen';
 import { useRouter } from 'next/navigation';
 
 interface AppShellProps {
@@ -13,13 +14,29 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
-  const { incomingCall } = useCallStore();
-  const { acceptCall, rejectCall } = useCalls();
+  const { incomingCall, activeCall } = useCallStore();
+  const { acceptCall, rejectCall, endCall } = useCalls();
 
   const handleAccept = (callId: string) => {
     acceptCall(callId);
-    router.push(`/call/${callId}`);
+    // Navigation is handled by SocketProvider on call:accepted event
   };
+
+  const handleReject = (callId: string) => {
+    rejectCall(callId);
+  };
+
+  const handleCancelCall = () => {
+    if (activeCall) {
+      endCall(activeCall.id);
+    }
+  };
+
+  // Caller: show calling overlay while waiting
+  const showCallingScreen = incomingCall?.isCaller && activeCall;
+
+  // Callee: show incoming call modal
+  const showIncomingModal = incomingCall && !incomingCall.isCaller;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100">
@@ -28,12 +45,20 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
 
-      {/* Global incoming call modal — shown over entire app */}
-      {incomingCall && !incomingCall.isCaller && (
+      {/* Caller: "Calling..." overlay */}
+      {showCallingScreen && (
+        <CallingScreen
+          call={activeCall}
+          onCancel={handleCancelCall}
+        />
+      )}
+
+      {/* Callee: incoming call notification */}
+      {showIncomingModal && (
         <IncomingCallModal
           call={incomingCall.call}
           onAccept={() => handleAccept(incomingCall.call.id)}
-          onReject={() => rejectCall(incomingCall.call.id)}
+          onReject={() => handleReject(incomingCall.call.id)}
         />
       )}
     </div>

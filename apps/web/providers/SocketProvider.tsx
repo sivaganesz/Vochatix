@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
 import { useCallStore } from '@/store/call.store';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { SOCKET_EVENTS } from '@/types/socket.types';
-import { Message, Conversation } from '@/types/chat.types';
+import { Message } from '@/types/chat.types';
 import { Call, IncomingCallState } from '@/types/call.types';
 
 interface SocketProviderProps {
@@ -14,8 +15,9 @@ interface SocketProviderProps {
 }
 
 export function SocketProvider({ children }: SocketProviderProps) {
+  const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  const { addMessage, addConversation, setUserOnline, setUserOffline, addTypingUser, removeTypingUser } =
+  const { addMessage, setUserOnline, setUserOffline, addTypingUser, removeTypingUser } =
     useChatStore();
   const { setIncomingCall, setActiveCall, clearCall } = useCallStore();
 
@@ -24,7 +26,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
     const socket = connectSocket();
 
-    // Presence events
+    // Presence
     socket.on(SOCKET_EVENTS.USER_ONLINE, ({ userId }: { userId: string }) => {
       setUserOnline(userId);
     });
@@ -33,22 +35,42 @@ export function SocketProvider({ children }: SocketProviderProps) {
       setUserOffline(userId);
     });
 
-    // Message events (global listener for all conversations)
+    // Messages
     socket.on(SOCKET_EVENTS.MESSAGE_NEW, ({ message }: { message: Message }) => {
       addMessage(message);
     });
 
-    // Call events
+    // Typing
+    socket.on(
+      SOCKET_EVENTS.TYPING_START,
+      ({ userId, conversationId }: { userId: string; conversationId: string }) => {
+        addTypingUser(userId, conversationId);
+      }
+    );
+
+    socket.on(
+      SOCKET_EVENTS.TYPING_STOP,
+      ({ userId, conversationId }: { userId: string; conversationId: string }) => {
+        removeTypingUser(userId, conversationId);
+      }
+    );
+
+    // Calls
+    // call:incoming → received by BOTH caller (isCaller=true) and callee (isCaller=false)
     socket.on(SOCKET_EVENTS.CALL_INCOMING, (payload: IncomingCallState) => {
       setIncomingCall(payload);
       if (payload.isCaller) {
+        // We are the caller — store active call, show CallingScreen overlay
         setActiveCall(payload.call);
       }
     });
 
+    // call:accepted → callee accepted — BOTH should navigate to the call page
     socket.on(SOCKET_EVENTS.CALL_ACCEPTED, ({ call }: { call: Call }) => {
       setActiveCall(call);
       setIncomingCall(null);
+      // Navigate both parties to the call room
+      router.push(`/call/${call.id}`);
     });
 
     socket.on(SOCKET_EVENTS.CALL_REJECTED, ({ call }: { call: Call }) => {
@@ -74,6 +96,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
       s.off(SOCKET_EVENTS.USER_ONLINE);
       s.off(SOCKET_EVENTS.USER_OFFLINE);
       s.off(SOCKET_EVENTS.MESSAGE_NEW);
+      s.off(SOCKET_EVENTS.TYPING_START);
+      s.off(SOCKET_EVENTS.TYPING_STOP);
       s.off(SOCKET_EVENTS.CALL_INCOMING);
       s.off(SOCKET_EVENTS.CALL_ACCEPTED);
       s.off(SOCKET_EVENTS.CALL_REJECTED);
@@ -82,8 +106,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
     };
   }, [
     isAuthenticated,
+    router,
     addMessage,
-    addConversation,
     setUserOnline,
     setUserOffline,
     setIncomingCall,

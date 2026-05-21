@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { Phone, Video, ArrowLeft } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { useChatStore } from '@/store/chat.store';
@@ -8,6 +7,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useCalls } from '@/hooks/useCalls';
 import { Conversation } from '@/types/chat.types';
 import { formatLastSeen } from '@/lib/date';
+import { useRouter } from 'next/navigation';
 
 interface ChatHeaderProps {
   conversation: Conversation;
@@ -24,9 +24,11 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
 
   const handleCall = (type: 'AUDIO' | 'VIDEO') => {
     if (!otherUser || !user) return;
+    // Emit call:invite via socket — server will create the call and send back
+    // call:incoming to both parties (isCaller=true for us, isCaller=false for them).
+    // SocketProvider listens for call:incoming and sets activeCall in the store.
+    // The CallingScreen overlay in AppShell shows while we wait for the other user.
     initiateCall(conversation.id, type, [otherUser.id]);
-    // Navigate to a "calling" state - the actual call page will open when accepted
-    router.push(`/call/outgoing?conversationId=${conversation.id}&type=${type}`);
   };
 
   return (
