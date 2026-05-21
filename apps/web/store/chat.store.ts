@@ -12,6 +12,7 @@ interface ChatStore {
   messages: Record<string, Message[]>;
   typingUsers: TypingUser[];
   onlineUserIds: Set<string>;
+  selectedProfileUserId: string | null;
 
   setConversations: (conversations: Conversation[]) => void;
   addConversation: (conversation: Conversation) => void;
@@ -25,6 +26,7 @@ interface ChatStore {
   removeTypingUser: (userId: string, conversationId: string) => void;
   setUserOnline: (userId: string) => void;
   setUserOffline: (userId: string) => void;
+  setSelectedProfileUserId: (userId: string | null) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -33,6 +35,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   messages: {},
   typingUsers: [],
   onlineUserIds: new Set(),
+  selectedProfileUserId: null,
 
   setConversations: (conversations) => set({ conversations }),
 
@@ -109,4 +112,6 @@ export const useChatStore = create<ChatStore>((set) => ({
       updated.delete(userId);
       return { onlineUserIds: updated };
     }),
+
+  setSelectedProfileUserId: (userId) => set({ selectedProfileUserId: userId }),
 }));

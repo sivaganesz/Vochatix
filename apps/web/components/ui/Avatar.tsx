@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn';
 interface AvatarProps {
   name: string;
   avatarUrl?: string | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   isOnline?: boolean;
   className?: string;
 }
@@ -37,6 +37,7 @@ export function Avatar({ name, avatarUrl, size = 'md', isOnline, className }: Av
     md: 'h-10 w-10 text-sm',
     lg: 'h-12 w-12 text-base',
     xl: 'h-16 w-16 text-xl',
+    '2xl': 'h-24 w-24 text-2xl',
   };
 
   const dotSizes = {
@@ -44,6 +45,7 @@ export function Avatar({ name, avatarUrl, size = 'md', isOnline, className }: Av
     md: 'h-2.5 w-2.5 border',
     lg: 'h-3 w-3 border-2',
     xl: 'h-3.5 w-3.5 border-2',
+    '2xl': 'h-4 w-4 border-2',
   };
 
   return (

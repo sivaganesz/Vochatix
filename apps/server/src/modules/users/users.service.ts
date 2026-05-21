@@ -8,6 +8,9 @@ export async function getAllUsers(currentUserId: string) {
       name: true,
       email: true,
       avatarUrl: true,
+      dob: true,
+      bio: true,
+      socialLinks: true,
       isOnline: true,
       lastSeenAt: true,
     },
@@ -33,6 +36,9 @@ export async function searchUsers(query: string, currentUserId: string) {
       name: true,
       email: true,
       avatarUrl: true,
+      dob: true,
+      bio: true,
+      socialLinks: true,
       isOnline: true,
       lastSeenAt: true,
     },
@@ -48,6 +54,27 @@ export async function getUserById(userId: string) {
       name: true,
       email: true,
       avatarUrl: true,
+      dob: true,
+      bio: true,
+      socialLinks: true,
+      isOnline: true,
+      lastSeenAt: true,
+    },
+  });
+}
+
+export async function updateUser(userId: string, data: { name?: string; avatarUrl?: string | null; dob?: Date | null; bio?: string | null; socialLinks?: any }) {
+  return prisma.user.update({
+    where: { id: userId },
+    data,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      avatarUrl: true,
+      dob: true,
+      bio: true,
+      socialLinks: true,
       isOnline: true,
       lastSeenAt: true,
     },

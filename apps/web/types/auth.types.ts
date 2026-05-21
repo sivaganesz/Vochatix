@@ -3,6 +3,9 @@ export interface AuthUser {
   name: string;
   email: string;
   avatarUrl: string | null;
+  dob?: string | null;
+  bio?: string | null;
+  socialLinks?: { platform: string; url: string }[] | null;
   isOnline?: boolean;
 }
 

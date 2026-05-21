@@ -91,10 +91,14 @@ export function ConversationList() {
 
           {/* Current user */}
           {user && (
-            <div className="flex items-center gap-2 px-2">
+            <button 
+              onClick={() => router.push('/profile')}
+              className="flex items-center gap-2 px-2 hover:bg-gray-50 rounded-lg py-1.5 transition-colors text-left w-full"
+              title="View my profile"
+            >
               <Avatar name={user.name} avatarUrl={user.avatarUrl} size="sm" isOnline />
               <span className="text-sm font-medium text-gray-700 truncate">{user.name}</span>
-            </div>
+            </button>
           )}
         </div>
 

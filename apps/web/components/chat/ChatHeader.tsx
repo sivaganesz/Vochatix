@@ -16,7 +16,7 @@ interface ChatHeaderProps {
 export function ChatHeader({ conversation }: ChatHeaderProps) {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { onlineUserIds } = useChatStore();
+  const { onlineUserIds, setSelectedProfileUserId } = useChatStore();
   const { initiateCall } = useCalls();
 
   const otherUser = conversation.members.find((m) => m.userId !== user?.id)?.user;
@@ -24,10 +24,6 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
 
   const handleCall = (type: 'AUDIO' | 'VIDEO') => {
     if (!otherUser || !user) return;
-    // Emit call:invite via socket — server will create the call and send back
-    // call:incoming to both parties (isCaller=true for us, isCaller=false for them).
-    // SocketProvider listens for call:incoming and sets activeCall in the store.
-    // The CallingScreen overlay in AppShell shows while we wait for the other user.
     initiateCall(conversation.id, type, [otherUser.id]);
   };
 
@@ -42,23 +38,28 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <Avatar
-          name={otherUser?.name ?? 'Unknown'}
-          avatarUrl={otherUser?.avatarUrl}
-          size="md"
-          isOnline={isOnline}
-        />
+        <button 
+          onClick={() => otherUser && setSelectedProfileUserId(otherUser.id)}
+          className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+        >
+          <Avatar
+            name={otherUser?.name ?? 'Unknown'}
+            avatarUrl={otherUser?.avatarUrl}
+            size="md"
+            isOnline={isOnline}
+          />
 
-        <div>
-          <p className="text-sm font-semibold text-gray-900">{otherUser?.name ?? 'Unknown'}</p>
-          <p className="text-xs text-gray-500">
-            {isOnline ? (
-              <span className="text-green-600">Online</span>
-            ) : (
-              formatLastSeen(otherUser?.lastSeenAt ?? null)
-            )}
-          </p>
-        </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">{otherUser?.name ?? 'Unknown'}</p>
+            <p className="text-xs text-gray-500">
+              {isOnline ? (
+                <span className="text-green-600">Online</span>
+              ) : (
+                formatLastSeen(otherUser?.lastSeenAt ?? null)
+              )}
+            </p>
+          </div>
+        </button>
       </div>
 
       <div className="flex items-center gap-2">

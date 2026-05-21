@@ -13,6 +13,9 @@ model User {
   email        String    @unique
   passwordHash String
   avatarUrl    String?
+  dob          DateTime?
+  bio          String?
+  socialLinks  Json?
   isOnline     Boolean   @default(false)
   lastSeenAt   DateTime?
   createdAt    DateTime  @default(now())
