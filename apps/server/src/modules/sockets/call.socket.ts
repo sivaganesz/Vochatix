@@ -34,8 +34,8 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
       // Broadcast the "Call started" system message to the conversation
       io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
 
-      // Notify caller that call was created
-      socket.emit(SOCKET_EVENTS.CALL_INCOMING, { call, isCaller: true });
+      // Notify caller that call was created (broadcasting to their user room to ensure it reaches them)
+      io.to(`user:${userId}`).emit(SOCKET_EVENTS.CALL_INCOMING, { call, isCaller: true });
 
       // Notify each target user
       for (const targetId of targetUserIds) {
