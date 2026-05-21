@@ -4,9 +4,9 @@
   "private": true,
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=apps/server\" \"npm run dev --workspace=apps/web\"",
-    "dev:web": "npm run dev --workspace=apps/web",
-    "dev:server": "npm run dev --workspace=apps/server",
+    "dev": "concurrently \"npx tsx watch apps/server/src/index.ts\" \"npx next dev apps/web --port 3000\"",
+    "dev:web": "npx next dev apps/web --port 3000",
+    "dev:server": "npx tsx watch apps/server/src/index.ts",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

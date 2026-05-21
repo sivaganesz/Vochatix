@@ -12,6 +12,7 @@
   "dependencies": {
     "@livekit/components-react": "^2.9.21",
     "@livekit/components-styles": "^1.2.0",
+    "autoprefixer": "^10.5.0",
     "axios": "^1.16.1",
     "livekit-client": "^2.19.0",
     "lucide-react": "^0.395.0",
