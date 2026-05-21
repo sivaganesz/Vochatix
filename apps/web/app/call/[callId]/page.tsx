@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { CallScreen } from '@/components/call/CallScreen';
@@ -11,12 +11,13 @@ import { useCallStore } from '@/store/call.store';
 import { SOCKET_EVENTS } from '@/types/socket.types';
 import { getSocket } from '@/lib/socket';
 
+// Next.js 14: params is a plain object, not a Promise
 interface CallPageProps {
-  params: Promise<{ callId: string }>;
+  params: { callId: string };
 }
 
 export default function CallPage({ params }: CallPageProps) {
-  const { callId } = use(params);
+  const { callId } = params;
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { fetchCall } = useCalls();

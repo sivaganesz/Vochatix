@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { ChatLayout } from '@/components/chat/ChatLayout';
@@ -14,12 +14,13 @@ import { useChatStore } from '@/store/chat.store';
 import { Conversation } from '@/types/chat.types';
 import api from '@/lib/api';
 
+// Next.js 14: params is a plain object, not a Promise
 interface ConversationPageProps {
-  params: Promise<{ conversationId: string }>;
+  params: { conversationId: string };
 }
 
 export default function ConversationPage({ params }: ConversationPageProps) {
-  const { conversationId } = use(params);
+  const { conversationId } = params;
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { typingUsers } = useChatStore();
