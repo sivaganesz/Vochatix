@@ -5,6 +5,7 @@ import { ConversationList } from './ConversationList';
 import { IncomingCallModal } from '@/components/call/IncomingCallModal';
 import { CallingScreen } from '@/components/call/CallingScreen';
 import { useCallStore } from '@/store/call.store';
+import { useAuthStore } from '@/store/auth.store';
 import { useCalls } from '@/hooks/useCalls';
 import { useRouter } from 'next/navigation';
 
@@ -13,7 +14,8 @@ interface ChatLayoutProps {
 }
 
 export function ChatLayout({ children }: ChatLayoutProps) {
-  const { incomingCall } = useCallStore();
+  const { incomingCall, activeCall } = useCallStore();
+  const { user } = useAuthStore();
   const { acceptCall, rejectCall, endCall } = useCalls();
   const router = useRouter();
 
@@ -21,6 +23,8 @@ export function ChatLayout({ children }: ChatLayoutProps) {
     acceptCall(callId);
     router.push(`/call/${callId}`);
   };
+
+  const isOutgoingCall = activeCall && activeCall.status === 'RINGING' && activeCall.startedById === user?.id;
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -42,10 +46,10 @@ export function ChatLayout({ children }: ChatLayoutProps) {
       )}
 
       {/* Outgoing calling screen */}
-      {incomingCall && incomingCall.isCaller && (
+      {isOutgoingCall && (
         <CallingScreen
-          call={incomingCall.call}
-          onCancel={() => endCall(incomingCall.call.id)}
+          call={activeCall}
+          onCancel={() => endCall(activeCall.id)}
         />
       )}
     </div>
