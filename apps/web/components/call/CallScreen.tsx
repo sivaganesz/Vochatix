@@ -1,36 +1,61 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  LiveKitRoom,
-  VideoConference,
-  RoomAudioRenderer,
-  useConnectionState,
-} from '@livekit/components-react';
+import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { ConnectionState } from 'livekit-client';
 import { Spinner } from '@/components/ui/Spinner';
 import { useLiveKitToken } from '@/hooks/useLiveKitToken';
 import { useCalls } from '@/hooks/useCalls';
 import { Call } from '@/types/call.types';
-import { Phone, PhoneOff, Video } from 'lucide-react';
-import { cn } from '@/lib/cn';
+import { Phone, Video } from 'lucide-react';
+import { CallControls } from './CallControls';
+import { CallStatusBanner } from './CallStatusBanner';
+import { ParticipantGrid } from './ParticipantGrid';
+import { CallDurationTimer } from './CallDurationTimer';
 
 interface CallScreenProps {
   call: Call;
 }
 
-function CallConnectionStatus() {
-  const connectionState = useConnectionState();
-
-  if (connectionState === ConnectionState.Connected) return null;
+function CallRoomContent({
+  call,
+  onEndCall,
+}: {
+  call: Call;
+  onEndCall: () => void;
+}) {
+  const isVideo = call.callType === 'VIDEO';
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-      <div className="bg-black/70 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2">
-        <Spinner size="sm" className="text-white" />
-        {connectionState === ConnectionState.Connecting ? 'Connecting...' : 'Reconnecting...'}
+    <div className="relative flex flex-col h-full bg-gray-900">
+      {/* Connection status banner */}
+      <CallStatusBanner />
+
+      {/* Call header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex-shrink-0">
+        <div className="flex items-center gap-2 text-white">
+          {isVideo ? (
+            <Video className="h-4 w-4" />
+          ) : (
+            <Phone className="h-4 w-4" />
+          )}
+          <span className="text-sm font-medium">
+            {isVideo ? 'Video Call' : 'Audio Call'}
+          </span>
+        </div>
+        <CallDurationTimer startedAt={call.startedAt} />
+      </div>
+
+      {/* Participant grid */}
+      <ParticipantGrid showVideo={isVideo} className="flex-1" />
+
+      {/* Audio rendering (always needed) */}
+      <RoomAudioRenderer />
+
+      {/* Call controls */}
+      <div className="flex-shrink-0 py-6 flex justify-center bg-gradient-to-t from-black/60 to-transparent">
+        <CallControls onEndCall={onEndCall} showVideo={isVideo} />
       </div>
     </div>
   );
@@ -40,21 +65,34 @@ export function CallScreen({ call }: CallScreenProps) {
   const router = useRouter();
   const { fetchToken, tokenData, isLoading, error } = useLiveKitToken();
   const { endCall } = useCalls();
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchToken(call.id).catch(console.error);
+    fetchToken(call.id).catch((err) => {
+      console.error('Failed to fetch LiveKit token:', err);
+    });
   }, [call.id, fetchToken]);
 
-  const handleEndCall = () => {
+  const handleEndCall = useCallback(() => {
     endCall(call.id);
     router.push(`/chat/${call.conversationId}`);
-  };
+  }, [call.id, call.conversationId, endCall, router]);
+
+  const handleError = useCallback((err: Error) => {
+    if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
+      setPermissionError(
+        'Camera or microphone access was denied. Please allow access and rejoin the call.'
+      );
+    } else {
+      console.error('LiveKit error:', err);
+    }
+  }, []);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-4">
         <Spinner size="lg" className="text-white" />
-        <p className="text-white text-lg">Setting up call...</p>
+        <p className="text-white text-lg">Connecting to call...</p>
       </div>
     );
   }
@@ -62,10 +100,28 @@ export function CallScreen({ call }: CallScreenProps) {
   if (error || !tokenData) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-4">
+        <Phone className="h-12 w-12 text-red-400" />
         <p className="text-red-400 text-lg">Failed to connect to call</p>
         <button
           onClick={() => router.push(`/chat/${call.conversationId}`)}
-          className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100"
+          className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          Back to chat
+        </button>
+      </div>
+    );
+  }
+
+  if (permissionError) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-4 px-6">
+        <div className="text-center">
+          <p className="text-yellow-400 text-lg font-semibold mb-2">Permission Required</p>
+          <p className="text-gray-400 text-sm max-w-sm">{permissionError}</p>
+        </div>
+        <button
+          onClick={() => router.push(`/chat/${call.conversationId}`)}
+          className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
         >
           Back to chat
         </button>
@@ -84,44 +140,10 @@ export function CallScreen({ call }: CallScreenProps) {
         onDisconnected={() => {
           router.push(`/chat/${call.conversationId}`);
         }}
+        onError={handleError}
         style={{ height: '100dvh' }}
       >
-        <div className="relative h-full">
-          <CallConnectionStatus />
-
-          {/* Call header */}
-          <div className="absolute top-0 left-0 right-0 z-10 px-4 py-3 bg-gradient-to-b from-black/50 to-transparent">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white">
-                {call.callType === 'VIDEO' ? (
-                  <Video className="h-4 w-4" />
-                ) : (
-                  <Phone className="h-4 w-4" />
-                )}
-                <span className="text-sm font-medium">
-                  {call.callType === 'VIDEO' ? 'Video Call' : 'Audio Call'}
-                </span>
-              </div>
-              <div className="text-white text-sm">
-                {call.participants.map((p) => p.user.name).join(', ')}
-              </div>
-            </div>
-          </div>
-
-          {/* LiveKit VideoConference handles mic/camera/screenshare controls */}
-          <VideoConference />
-
-          {/* End call overlay button */}
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10">
-            <button
-              onClick={handleEndCall}
-              className="h-14 w-14 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
-              title="End call"
-            >
-              <PhoneOff className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
+        <CallRoomContent call={call} onEndCall={handleEndCall} />
       </LiveKitRoom>
     </div>
   );

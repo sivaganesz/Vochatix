@@ -22,6 +22,11 @@ export async function createCall(
 
   if (!conversation) throw new ApiError(403, 'Conversation not found or access denied');
 
+  // Prevent calling yourself
+  if (targetUserIds.includes(startedById)) {
+    throw new ApiError(400, 'You cannot call yourself');
+  }
+
   // Validate all target users are members
   for (const targetId of targetUserIds) {
     const isMember = conversation.members.some((m) => m.userId === targetId);
