@@ -61,13 +61,13 @@ export async function createCall(
 
   // Create system message
   const callTypeLabel = callType === 'VIDEO' ? 'Video' : 'Audio';
-  await createSystemMessage(conversationId, `${callTypeLabel} call started`, {
+  const message = await createSystemMessage(conversationId, `${callTypeLabel} call started`, {
     callId: call.id,
     callType,
     status: 'RINGING',
   });
 
-  return call;
+  return { call, message };
 }
 
 export async function getCallById(callId: string) {
@@ -136,13 +136,13 @@ export async function rejectCall(callId: string, userId: string) {
   });
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
-  await createSystemMessage(call.conversationId, `${callTypeLabel} call declined`, {
+  const message = await createSystemMessage(call.conversationId, `${callTypeLabel} call declined`, {
     callId,
     callType: call.callType,
     status: 'REJECTED',
   });
 
-  return updatedCall;
+  return { call: updatedCall, message };
 }
 
 export async function endCall(callId: string, userId: string) {
@@ -176,7 +176,7 @@ export async function endCall(callId: string, userId: string) {
     durationText = ` · ${formatCallDuration(call.startedAt, endedAt)}`;
   }
 
-  await createSystemMessage(call.conversationId, `${callTypeLabel} call ended${durationText}`, {
+  const message = await createSystemMessage(call.conversationId, `${callTypeLabel} call ended${durationText}`, {
     callId,
     callType: call.callType,
     status: 'ENDED',
@@ -185,7 +185,7 @@ export async function endCall(callId: string, userId: string) {
       : 0,
   });
 
-  return updatedCall;
+  return { call: updatedCall, message };
 }
 
 export async function markCallAsMissed(callId: string) {
@@ -213,11 +213,11 @@ export async function markCallAsMissed(callId: string) {
   });
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
-  await createSystemMessage(call.conversationId, `Missed ${callTypeLabel.toLowerCase()} call`, {
+  const message = await createSystemMessage(call.conversationId, `Missed ${callTypeLabel.toLowerCase()} call`, {
     callId,
     callType: call.callType,
     status: 'MISSED',
   });
 
-  return updatedCall;
+  return { call: updatedCall, message };
 }

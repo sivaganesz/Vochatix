@@ -24,12 +24,15 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
     try {
       const { conversationId, callType, targetUserIds } = payload;
 
-      const call = await createCall(
+      const { call, message } = await createCall(
         conversationId,
         userId,
         callType as CallType,
         targetUserIds
       );
+
+      // Broadcast the "Call started" system message to the conversation
+      io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
 
       // Notify caller that call was created
       socket.emit(SOCKET_EVENTS.CALL_INCOMING, { call, isCaller: true });
@@ -45,14 +48,17 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
       // Set timeout for missed call
       const timeout = setTimeout(async () => {
         try {
-          const updatedCall = await markCallAsMissed(call.id);
-          if (updatedCall) {
+          const result = await markCallAsMissed(call.id);
+          if (result) {
+            const { call: updatedCall, message } = result;
             // Notify all participants
-            for (const participant of call.participants) {
+            for (const participant of updatedCall.participants) {
               io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_MISSED, {
                 call: updatedCall,
               });
             }
+            // Broadcast the missed call system message
+            io.to(`conversation:${updatedCall.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
           }
         } catch (err) {
           logger.error('Error marking call as missed:', err);
@@ -108,12 +114,15 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
         callTimeouts.delete(callId);
       }
 
-      const call = await rejectCall(callId, userId);
+      const { call, message } = await rejectCall(callId, userId);
 
       // Notify all participants
       for (const participant of call.participants) {
         io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_REJECTED, { call });
       }
+
+      // Broadcast the declined call system message
+      io.to(`conversation:${call.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
 
       logger.info(`Call ${callId} rejected by user ${userId}`);
     } catch (error) {
@@ -134,12 +143,15 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
         callTimeouts.delete(callId);
       }
 
-      const call = await endCall(callId, userId);
+      const { call, message } = await endCall(callId, userId);
 
       // Notify all participants
       for (const participant of call.participants) {
         io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_ENDED, { call });
       }
+
+      // Broadcast the ended call system message
+      io.to(`conversation:${call.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
 
       logger.info(`Call ${callId} ended by user ${userId}`);
     } catch (error) {

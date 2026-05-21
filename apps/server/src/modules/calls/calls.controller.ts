@@ -6,7 +6,7 @@ import { CallType } from '@prisma/client';
 
 export const initiateCall = asyncHandler(async (req: Request, res: Response) => {
   const { conversationId, callType, targetUserIds } = req.body;
-  const call = await createCall(
+  const { call } = await createCall(
     conversationId,
     req.user!.id,
     callType as CallType,
@@ -27,11 +27,11 @@ export const acceptCallHandler = asyncHandler(async (req: Request, res: Response
 });
 
 export const rejectCallHandler = asyncHandler(async (req: Request, res: Response) => {
-  const call = await rejectCall(req.params.callId, req.user!.id);
+  const { call } = await rejectCall(req.params.callId, req.user!.id);
   res.json({ success: true, data: { call } });
 });
 
 export const endCallHandler = asyncHandler(async (req: Request, res: Response) => {
-  const call = await endCall(req.params.callId, req.user!.id);
+  const { call } = await endCall(req.params.callId, req.user!.id);
   res.json({ success: true, data: { call } });
 });
