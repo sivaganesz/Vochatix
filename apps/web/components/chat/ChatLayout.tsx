@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { ConversationList } from './ConversationList';
 import { IncomingCallModal } from '@/components/call/IncomingCallModal';
+import { CallingScreen } from '@/components/call/CallingScreen';
 import { useCallStore } from '@/store/call.store';
 import { useCalls } from '@/hooks/useCalls';
 import { useRouter } from 'next/navigation';
@@ -13,7 +14,7 @@ interface ChatLayoutProps {
 
 export function ChatLayout({ children }: ChatLayoutProps) {
   const { incomingCall } = useCallStore();
-  const { acceptCall, rejectCall } = useCalls();
+  const { acceptCall, rejectCall, endCall } = useCalls();
   const router = useRouter();
 
   const handleAcceptCall = (callId: string) => {
@@ -37,6 +38,14 @@ export function ChatLayout({ children }: ChatLayoutProps) {
           call={incomingCall.call}
           onAccept={() => handleAcceptCall(incomingCall.call.id)}
           onReject={() => rejectCall(incomingCall.call.id)}
+        />
+      )}
+
+      {/* Outgoing calling screen */}
+      {incomingCall && incomingCall.isCaller && (
+        <CallingScreen
+          call={incomingCall.call}
+          onCancel={() => endCall(incomingCall.call.id)}
         />
       )}
     </div>
