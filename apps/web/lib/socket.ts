@@ -19,6 +19,10 @@ export function connectSocket(): Socket {
     reconnectionDelay: 1000,
     reconnectionAttempts: 5,
     transports: ['websocket', 'polling'],
+    // Required for ngrok free tier tunneling
+    extraHeaders: {
+      'ngrok-skip-browser-warning': 'true',
+    },
   });
 
   return socket;
