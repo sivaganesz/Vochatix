@@ -2,16 +2,21 @@
   "name": "realtime-chat-video-app",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "concurrently \"npx tsx watch apps/server/src/index.ts\" \"npx next dev apps/web --port 3000\"",
-    "dev:web": "npx next dev apps/web --port 3000",
-    "dev:server": "npx tsx watch apps/server/src/index.ts",
-    "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:server": "turbo run dev --filter=server",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "turbo": "^2.9.14"
   }
 }

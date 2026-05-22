@@ -1,5 +1,3 @@
-export type CallStatus = 'RINGING' | 'ACCEPTED' | 'REJECTED' | 'MISSED' | 'ENDED' | 'FAILED';
-export type CallParticipantStatus = 'RINGING' | 'ACCEPTED' | 'REJECTED' | 'MISSED' | 'LEFT';
 
 export const CALL_STATUS = {
   RINGING: 'RINGING',

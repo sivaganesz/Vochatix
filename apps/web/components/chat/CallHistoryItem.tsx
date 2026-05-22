@@ -32,7 +32,7 @@ export function CallHistoryItem({ message }: CallHistoryItemProps) {
   let StatusIcon = CallIcon;
   let colorClass = 'text-gray-500';
   let bgClass = 'bg-gray-100';
-  let label = message.text ?? '';
+  const label = message.text ?? '';
 
   if (status === 'MISSED') {
     StatusIcon = PhoneMissed;
