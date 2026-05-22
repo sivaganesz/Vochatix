@@ -6,9 +6,9 @@ export function EmptyChatState() {
       <div className="h-24 w-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
         <MessageSquare className="h-12 w-12 text-blue-400" />
       </div>
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">Welcome to Vochatix</h2>
+      <h2 className="text-xl font-semibold text-gray-800 mb-2">Welcome to Chat Work</h2>
       <p className="text-gray-500 max-w-sm">
-        Select a conversation from the sidebar or start a new one by clicking the + button.
+        Select a conversation to start messaging.
       </p>
     </div>
   );

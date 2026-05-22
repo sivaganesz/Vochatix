@@ -1,12 +1,13 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Sidebar } from './Sidebar';
+import { PrimarySidebar } from './PrimarySidebar';
 import { useCallStore } from '@/store/call.store';
 import { useCalls } from '@/hooks/useCalls';
 import { IncomingCallModal } from '@/components/call/IncomingCallModal';
 import { CallingScreen } from '@/components/call/CallingScreen';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth.store';
 
 interface AppShellProps {
   children: ReactNode;
@@ -15,50 +16,38 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const { incomingCall, activeCall } = useCallStore();
+  const { user } = useAuthStore();
   const { acceptCall, rejectCall, endCall } = useCalls();
 
-  const handleAccept = (callId: string) => {
+  const handleAcceptCall = (callId: string) => {
     acceptCall(callId);
-    // Navigation is handled by SocketProvider on call:accepted event
+    router.push(`/call/${callId}`);
   };
 
-  const handleReject = (callId: string) => {
-    rejectCall(callId);
-  };
-
-  const handleCancelCall = () => {
-    if (activeCall) {
-      endCall(activeCall.id);
-    }
-  };
-
-  // Caller: show calling overlay while waiting
-  const showCallingScreen = incomingCall?.isCaller && activeCall;
-
-  // Callee: show incoming call modal
-  const showIncomingModal = incomingCall && !incomingCall.isCaller;
+  const isOutgoingCall = activeCall && activeCall.status === 'RINGING' && activeCall.startedById === user?.id;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
-      <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-white">
+      <PrimarySidebar />
+      
+      <main className="flex-1 flex min-w-0 h-full overflow-hidden">
         {children}
       </main>
 
-      {/* Caller: "Calling..." overlay */}
-      {showCallingScreen && (
+      {/* Outgoing calling screen */}
+      {isOutgoingCall && (
         <CallingScreen
           call={activeCall}
-          onCancel={handleCancelCall}
+          onCancel={() => endCall(activeCall.id)}
         />
       )}
 
-      {/* Callee: incoming call notification */}
-      {showIncomingModal && (
+      {/* Incoming call modal */}
+      {incomingCall && !incomingCall.isCaller && (
         <IncomingCallModal
           call={incomingCall.call}
-          onAccept={() => handleAccept(incomingCall.call.id)}
-          onReject={() => handleReject(incomingCall.call.id)}
+          onAccept={() => handleAcceptCall(incomingCall.call.id)}
+          onReject={() => rejectCall(incomingCall.call.id)}
         />
       )}
     </div>
