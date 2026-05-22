@@ -5,9 +5,10 @@ import {
   CallAcceptPayload,
   CallRejectPayload,
   CallEndPayload,
+  CallInviteParticipantsPayload,
 } from '../../types/socket.types';
 import { SOCKET_EVENTS } from './socket.events';
-import { createCall, acceptCall, rejectCall, endCall, markCallAsMissed } from '../calls/calls.service';
+import { createCall, acceptCall, rejectCall, endCall, markCallAsMissed, inviteToCall } from '../calls/calls.service';
 import { logger } from '../../utils/logger';
 import { CallType } from '@prisma/client';
 
@@ -73,6 +74,27 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
     } catch (error) {
       socket.emit(SOCKET_EVENTS.CALL_ERROR, { message: 'Failed to initiate call' });
       logger.error('Error initiating call:', error);
+    }
+  });
+
+  // Invite more participants to an ongoing call
+  socket.on(SOCKET_EVENTS.CALL_INVITE_PARTICIPANTS, async (payload: CallInviteParticipantsPayload) => {
+    try {
+      const { callId, targetUserIds } = payload;
+      const { call, invitedUserIds } = await inviteToCall(callId, userId, targetUserIds);
+
+      // Notify each newly invited user
+      for (const targetId of invitedUserIds) {
+        io.to(`user:${targetId}`).emit(SOCKET_EVENTS.CALL_PARTICIPANT_INCOMING, {
+          call,
+          isCaller: false,
+        });
+      }
+
+      logger.info(`Users ${invitedUserIds.join(', ')} invited to call ${callId} by user ${userId}`);
+    } catch (error) {
+      socket.emit(SOCKET_EVENTS.CALL_ERROR, { message: 'Failed to invite participants' });
+      logger.error('Error inviting participants:', error);
     }
   });
 

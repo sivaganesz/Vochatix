@@ -58,6 +58,16 @@ export function useCalls() {
     return response.data.data.call as Call;
   }, []);
 
+  const inviteToCall = useCallback(
+    (callId: string, targetUserIds: string[]) => {
+      const socket = getSocket();
+      if (socket) {
+        socket.emit(SOCKET_EVENTS.CALL_INVITE_PARTICIPANTS, { callId, targetUserIds });
+      }
+    },
+    []
+  );
+
   return {
     activeCall,
     incomingCall,
@@ -69,5 +79,6 @@ export function useCalls() {
     rejectCall,
     endCall,
     fetchCall,
+    inviteToCall,
   };
 }

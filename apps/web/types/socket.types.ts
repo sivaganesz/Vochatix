@@ -24,4 +24,9 @@ export const SOCKET_EVENTS = {
   CALL_MISSED: 'call:missed',
   CALL_BUSY: 'call:busy',
   CALL_ERROR: 'call:error',
+
+  CALL_PARTICIPANT_INCOMING: 'call:participant-incoming',
+  CALL_PARTICIPANT_ACCEPTED: 'call:participant-accepted',
+  CALL_PARTICIPANT_REJECTED: 'call:participant-rejected',
+  CALL_INVITE_PARTICIPANTS: 'call:invite-participants',
 } as const;

@@ -7,3 +7,9 @@ export const createCallSchema = z.object({
 });
 
 export type CreateCallInput = z.infer<typeof createCallSchema>;
+
+export const inviteUsersSchema = z.object({
+  targetUserIds: z.array(z.string()).min(1),
+});
+
+export type InviteUsersInput = z.infer<typeof inviteUsersSchema>;

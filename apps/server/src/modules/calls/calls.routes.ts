@@ -5,10 +5,11 @@ import {
   acceptCallHandler,
   rejectCallHandler,
   endCallHandler,
+  inviteUsersHandler,
 } from './calls.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
-import { createCallSchema } from './calls.validation';
+import { createCallSchema, inviteUsersSchema } from './calls.validation';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.get('/:callId', getCall);
 router.post('/:callId/accept', acceptCallHandler);
 router.post('/:callId/reject', rejectCallHandler);
 router.post('/:callId/end', endCallHandler);
+router.post('/:callId/invite', validateBody(inviteUsersSchema), inviteUsersHandler);
 
 export default router;

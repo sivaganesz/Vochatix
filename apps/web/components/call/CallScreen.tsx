@@ -14,6 +14,8 @@ import { CallStatusBanner } from './CallStatusBanner';
 import { ParticipantGrid } from './ParticipantGrid';
 import { CallDurationTimer } from './CallDurationTimer';
 
+import { InvitePeopleModal } from './InvitePeopleModal';
+
 interface CallScreenProps {
   call: Call;
 }
@@ -26,9 +28,17 @@ function CallRoomContent({
   onEndCall: () => void;
 }) {
   const isVideo = call.callType === 'VIDEO';
+  const { inviteToCall } = useCalls();
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  const existingParticipantIds = call.participants?.map((p) => p.userId) || [];
+
+  const handleInvite = (userIds: string[]) => {
+    inviteToCall(call.id, userIds);
+  };
 
   return (
-    <div className="relative flex flex-col h-full bg-gray-900">
+    <div className="relative flex flex-col h-full overflow-hidden bg-gray-900">
       {/* Connection status banner */}
       <CallStatusBanner />
 
@@ -55,8 +65,20 @@ function CallRoomContent({
 
       {/* Call controls */}
       <div className="flex-shrink-0 py-6 flex justify-center bg-gradient-to-t from-black/60 to-transparent">
-        <CallControls onEndCall={onEndCall} showVideo={isVideo} />
+        <CallControls 
+          onEndCall={onEndCall} 
+          showVideo={isVideo} 
+          onInviteClick={() => setIsInviteModalOpen(true)}
+        />
       </div>
+
+      {/* Invite Modal */}
+      <InvitePeopleModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInvite={handleInvite}
+        existingParticipantIds={existingParticipantIds}
+      />
     </div>
   );
 }
@@ -130,7 +152,7 @@ export function CallScreen({ call }: CallScreenProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="h-screen overflow-hidden bg-gray-900">
       <LiveKitRoom
         token={tokenData.token}
         serverUrl={tokenData.url}

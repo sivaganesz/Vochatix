@@ -113,10 +113,25 @@ export function SocketProvider({ children }: SocketProviderProps) {
       router.push(`/call/${call.id}`);
     });
 
+    socket.on(SOCKET_EVENTS.CALL_PARTICIPANT_INCOMING, (payload: IncomingCallState) => {
+      setIncomingCall(payload);
+    });
+
     socket.on(SOCKET_EVENTS.CALL_REJECTED, ({ call }: { call: Call }) => {
-      setActiveCall(null);
-      setIncomingCall(null);
-      clearCall();
+      const currentUserId = useAuthStore.getState().user?.id;
+      // If the call is still active (ACCEPTED), it means someone else rejected an invite
+      if (call.status === 'ACCEPTED') {
+        setActiveCall(call);
+        // If we were the one being invited and we rejected, clear our incoming call
+        const me = call.participants.find((p) => p.userId === currentUserId);
+        if (me && me.status === 'REJECTED') {
+          setIncomingCall(null);
+        }
+      } else {
+        setActiveCall(null);
+        setIncomingCall(null);
+        clearCall();
+      }
     });
 
     socket.on(SOCKET_EVENTS.CALL_ENDED, ({ call }: { call: Call }) => {
@@ -139,6 +154,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       s.off(SOCKET_EVENTS.TYPING_START);
       s.off(SOCKET_EVENTS.TYPING_STOP);
       s.off(SOCKET_EVENTS.CALL_INCOMING);
+      s.off(SOCKET_EVENTS.CALL_PARTICIPANT_INCOMING);
       s.off(SOCKET_EVENTS.CALL_ACCEPTED);
       s.off(SOCKET_EVENTS.CALL_REJECTED);
       s.off(SOCKET_EVENTS.CALL_ENDED);

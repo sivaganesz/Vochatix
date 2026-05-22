@@ -2,16 +2,17 @@
 
 import { useLocalParticipant } from '@livekit/components-react';
 import { Track } from 'livekit-client';
-import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, MonitorUp, PhoneOff, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useCallback } from 'react';
 
 interface CallControlsProps {
   onEndCall: () => void;
   showVideo?: boolean;
+  onInviteClick?: () => void;
 }
 
-export function CallControls({ onEndCall, showVideo = true }: CallControlsProps) {
+export function CallControls({ onEndCall, showVideo = true, onInviteClick }: CallControlsProps) {
   const {
     localParticipant,
     isMicrophoneEnabled,
@@ -84,6 +85,17 @@ export function CallControls({ onEndCall, showVideo = true }: CallControlsProps)
       >
         <MonitorUp className="h-5 w-5 text-white" />
       </button>
+
+      {/* Add People */}
+      {onInviteClick && (
+        <button
+          onClick={onInviteClick}
+          className="h-12 w-12 rounded-full flex items-center justify-center transition-colors bg-gray-700 hover:bg-gray-600"
+          title="Add people"
+        >
+          <UserPlus className="h-5 w-5 text-white" />
+        </button>
+      )}
 
       {/* End call */}
       <button

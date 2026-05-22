@@ -90,7 +90,11 @@ export async function acceptCall(callId: string, userId: string) {
   });
 
   if (!call) throw new ApiError(404, 'Call not found or access denied');
-  if (call.status !== 'RINGING') throw new ApiError(400, 'Call is no longer ringing');
+  
+  const participant = call.participants.find(p => p.userId === userId);
+  if (!participant || participant.status !== 'RINGING') {
+    throw new ApiError(400, 'You are not ringing for this call');
+  }
 
   await prisma.callParticipant.update({
     where: { callId_userId: { callId, userId } },
@@ -99,7 +103,10 @@ export async function acceptCall(callId: string, userId: string) {
 
   const updatedCall = await prisma.call.update({
     where: { id: callId },
-    data: { status: 'ACCEPTED', startedAt: new Date() },
+    data: {
+      status: 'ACCEPTED',
+      ...(call.status === 'RINGING' ? { startedAt: new Date() } : {}),
+    },
     include: {
       participants: {
         include: { user: { select: { id: true, name: true, avatarUrl: true } } },
@@ -124,9 +131,12 @@ export async function rejectCall(callId: string, userId: string) {
     data: { status: 'REJECTED', leftAt: new Date() },
   });
 
+  const isCallActive = call.status === 'ACCEPTED';
   const updatedCall = await prisma.call.update({
     where: { id: callId },
-    data: { status: 'REJECTED', endedAt: new Date() },
+    data: isCallActive 
+      ? {} // Do not change call status if it's already active
+      : { status: 'REJECTED', endedAt: new Date() },
     include: {
       participants: {
         include: { user: { select: { id: true, name: true, avatarUrl: true } } },
@@ -136,11 +146,15 @@ export async function rejectCall(callId: string, userId: string) {
   });
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
-  const message = await createSystemMessage(call.conversationId, `${callTypeLabel} call declined`, {
-    callId,
-    callType: call.callType,
-    status: 'REJECTED',
-  });
+  let message;
+  
+  if (!isCallActive) {
+    message = await createSystemMessage(call.conversationId, `${callTypeLabel} call declined`, {
+      callId,
+      callType: call.callType,
+      status: 'REJECTED',
+    });
+  }
 
   return { call: updatedCall, message };
 }
@@ -220,4 +234,69 @@ export async function markCallAsMissed(callId: string) {
   });
 
   return { call: updatedCall, message };
+}
+
+export async function inviteToCall(callId: string, inviterId: string, targetUserIds: string[]) {
+  const call = await prisma.call.findUnique({
+    where: { id: callId },
+    include: { participants: true, conversation: true },
+  });
+
+  if (!call) throw new ApiError(404, 'Call not found');
+  if (call.status !== 'RINGING' && call.status !== 'ACCEPTED') {
+    throw new ApiError(400, 'Call is no longer active');
+  }
+
+  // Ensure inviter is in the call
+  const isInviterParticipant = call.participants.some(p => p.userId === inviterId);
+  if (!isInviterParticipant) {
+    throw new ApiError(403, 'You are not a participant in this call');
+  }
+
+  // Filter out existing participants
+  const existingParticipantIds = new Set(call.participants.map(p => p.userId));
+  const newTargetIds = targetUserIds.filter(id => !existingParticipantIds.has(id));
+
+  if (newTargetIds.length === 0) {
+    throw new ApiError(400, 'All selected users are already in the call');
+  }
+
+  // Ensure new targets are conversation members
+  for (const targetId of newTargetIds) {
+    await prisma.conversationMember.upsert({
+      where: {
+        conversationId_userId: {
+          conversationId: call.conversationId,
+          userId: targetId,
+        },
+      },
+      create: {
+        conversationId: call.conversationId,
+        userId: targetId,
+      },
+      update: {}, // Do nothing if exists
+    });
+  }
+
+  // Create new ringing participants
+  await prisma.callParticipant.createMany({
+    data: newTargetIds.map(userId => ({
+      callId,
+      userId,
+      status: 'RINGING',
+    })),
+  });
+
+  const updatedCall = await prisma.call.findUniqueOrThrow({
+    where: { id: callId },
+    include: {
+      participants: {
+        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+      },
+      startedBy: { select: { id: true, name: true, avatarUrl: true } },
+      conversation: true,
+    },
+  });
+
+  return { call: updatedCall, invitedUserIds: newTargetIds };
 }

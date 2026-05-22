@@ -31,3 +31,8 @@ export interface MessageSendPayload {
 export interface TypingPayload {
   conversationId: string;
 }
+
+export interface CallInviteParticipantsPayload {
+  callId: string;
+  targetUserIds: string[];
+}

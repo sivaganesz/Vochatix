@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler';
-import { createCall, getCallById, acceptCall, rejectCall, endCall } from './calls.service';
+import { createCall, getCallById, acceptCall, rejectCall, endCall, inviteToCall } from './calls.service';
 import { ApiError } from '../../utils/ApiError';
 import { CallType } from '@prisma/client';
 
@@ -34,4 +34,10 @@ export const rejectCallHandler = asyncHandler(async (req: Request, res: Response
 export const endCallHandler = asyncHandler(async (req: Request, res: Response) => {
   const { call } = await endCall(req.params.callId, req.user!.id);
   res.json({ success: true, data: { call } });
+});
+
+export const inviteUsersHandler = asyncHandler(async (req: Request, res: Response) => {
+  const { targetUserIds } = req.body;
+  const result = await inviteToCall(req.params.callId, req.user!.id, targetUserIds);
+  res.json({ success: true, data: result });
 });
