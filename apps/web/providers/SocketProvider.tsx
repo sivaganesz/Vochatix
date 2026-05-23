@@ -7,7 +7,7 @@ import { useChatStore } from '@/store/chat.store';
 import { useCallStore } from '@/store/call.store';
 import { connectSocket, getSocket } from '@/lib/socket';
 import { SOCKET_EVENTS } from '@/types/socket.types';
-import { Message } from '@/types/chat.types';
+import { Message, Conversation } from '@/types/chat.types';
 import { Call, IncomingCallState } from '@/types/call.types';
 
 interface SocketProviderProps {
@@ -105,12 +105,22 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }
     });
 
-    // call:accepted → callee accepted — BOTH should navigate to the call page
+    // call:accepted → callee accepted — navigate ONLY if we are caller or we accepted
     socket.on(SOCKET_EVENTS.CALL_ACCEPTED, ({ call }: { call: Call }) => {
+      const currentUserId = useAuthStore.getState().user?.id;
+      const me = call.participants.find((p) => p.userId === currentUserId);
+      const isCaller = call.startedById === currentUserId;
+      const didWeAccept = me && me.status === 'ACCEPTED';
+
       setActiveCall(call);
-      setIncomingCall(null);
-      // Navigate both parties to the call room
-      router.push(`/call/${call.id}`);
+
+      if (isCaller || didWeAccept) {
+        setIncomingCall(null);
+        router.push(`/call/${call.id}`);
+      } else if (me && me.status === 'REJECTED') {
+        // We rejected earlier, clear the incoming call screen (just in case)
+        setIncomingCall(null);
+      }
     });
 
     socket.on(SOCKET_EVENTS.CALL_PARTICIPANT_INCOMING, (payload: IncomingCallState) => {
@@ -119,18 +129,20 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
     socket.on(SOCKET_EVENTS.CALL_REJECTED, ({ call }: { call: Call }) => {
       const currentUserId = useAuthStore.getState().user?.id;
-      // If the call is still active (ACCEPTED), it means someone else rejected an invite
-      if (call.status === 'ACCEPTED') {
-        setActiveCall(call);
-        // If we were the one being invited and we rejected, clear our incoming call
-        const me = call.participants.find((p) => p.userId === currentUserId);
-        if (me && me.status === 'REJECTED') {
-          setIncomingCall(null);
-        }
-      } else {
+      const me = call.participants.find((p) => p.userId === currentUserId);
+      
+      if (call.status === 'REJECTED') {
+        // The entire call is rejected (no one left to answer)
         setActiveCall(null);
         setIncomingCall(null);
         clearCall();
+      } else {
+        // The call continues (still RINGING for others, or ACCEPTED)
+        setActiveCall(call);
+        // If we were the one being invited and we rejected, clear our incoming call
+        if (me && me.status === 'REJECTED') {
+          setIncomingCall(null);
+        }
       }
     });
 
@@ -164,6 +176,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       s.off(SOCKET_EVENTS.CALL_ENDED);
       s.off(SOCKET_EVENTS.CALL_PARTICIPANT_LEFT);
       s.off(SOCKET_EVENTS.CALL_MISSED);
+      s.off('conversation:updated');
     };
   }, [
     isAuthenticated,
@@ -177,6 +190,49 @@ export function SocketProvider({ children }: SocketProviderProps) {
     addTypingUser,
     removeTypingUser,
   ]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    
+    const handleConversationUpdated = async (conversation: Conversation | { id: string }) => {
+      const { updateConversation, conversations, activeConversationId, setActiveConversation } = useChatStore.getState();
+      const currentUserId = useAuthStore.getState().user?.id;
+      
+      if (!currentUserId) return;
+
+      if ('type' in conversation) {
+        // Full conversation object (e.g. from renaming or adding members)
+        const exists = conversations.some(c => c.id === conversation.id);
+        if (exists) {
+          updateConversation(conversation);
+        } else {
+          // If we were just added to it
+          useChatStore.getState().addConversation(conversation);
+        }
+      } else {
+        // We left the conversation, or it was deleted
+        const api = (await import('@/lib/api')).default;
+        try {
+          const res = await api.get('/api/conversations');
+          useChatStore.getState().setConversations(res.data.data.conversations);
+          
+          if (activeConversationId === conversation.id) {
+            setActiveConversation(null);
+            router.push('/chat');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+
+    socket.on('conversation:updated', handleConversationUpdated);
+    
+    return () => {
+      socket.off('conversation:updated', handleConversationUpdated);
+    }
+  }, [router]);
 
   return <>{children}</>;
 }

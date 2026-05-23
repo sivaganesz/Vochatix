@@ -30,6 +30,8 @@ model User {
 model Conversation {
   id        String           @id @default(cuid())
   type      ConversationType @default(DIRECT)
+  name      String?          // Used for group chats
+  avatarUrl String?          // Used for group chats
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 

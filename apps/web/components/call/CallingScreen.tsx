@@ -14,9 +14,14 @@ export function CallingScreen({ call, onCancel }: CallingScreenProps) {
   const [seconds, setSeconds] = useState(0);
   const isVideo = call.callType === 'VIDEO';
 
-  const callee = call.participants.find(
-    (p) => p.userId !== call.startedById
-  )?.user ?? call.startedBy;
+  const isGroup = call.conversation?.type === 'GROUP';
+  
+  const displayProfile = isGroup 
+    ? {
+        name: call.conversation.name || 'Group Call',
+        avatarUrl: call.conversation.avatarUrl,
+      }
+    : call.participants.find((p) => p.userId !== call.startedById)?.user ?? call.startedBy;
 
   useEffect(() => {
     const interval = setInterval(() => setSeconds((s) => s + 1), 1000);
@@ -39,12 +44,12 @@ export function CallingScreen({ call, onCancel }: CallingScreenProps) {
         {/* Callee */}
         <div className="flex flex-col items-center gap-3">
           <div className="relative">
-            <Avatar name={callee.name} avatarUrl={callee.avatarUrl} size="xl" />
+            <Avatar name={displayProfile.name} avatarUrl={displayProfile.avatarUrl} size="xl" />
             {/* Animated pulse rings */}
             <div className="absolute inset-0 rounded-full ring-4 ring-blue-500 ring-opacity-40 animate-ping" />
           </div>
           <div className="text-center">
-            <p className="text-white text-xl font-bold">{callee.name}</p>
+            <p className="text-white text-xl font-bold">{displayProfile.name}</p>
             <p className="text-gray-400 text-sm mt-1 animate-pulse">Calling...</p>
           </div>
         </div>

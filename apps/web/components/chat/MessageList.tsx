@@ -40,13 +40,25 @@ export function MessageList({ messages, currentUserId, isLoading }: MessageListP
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
-      {messages.map((message) => (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          isSelf={message.senderId === currentUserId}
-        />
-      ))}
+      {messages.map((message) => {
+        if (message.type === 'SYSTEM') {
+          return (
+            <div key={message.id} className="flex justify-center py-2 my-2">
+              <span className="bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1 rounded-full">
+                {message.text}
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isSelf={message.senderId === currentUserId}
+          />
+        );
+      })}
       <div ref={bottomRef} />
     </div>
   );

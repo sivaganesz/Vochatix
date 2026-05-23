@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, MessageStatus } from '@prisma/client';
 import { prisma } from '../../prisma/prisma.service';
 import { ApiError } from '../../utils/ApiError';
 import { validateConversationMembership } from '../conversations/conversations.service';
@@ -49,13 +49,15 @@ export async function sendMessage(conversationId: string, senderId: string, text
 export async function createSystemMessage(
   conversationId: string,
   text: string,
-  metadata?: Prisma.InputJsonValue
+  metadata?: Prisma.InputJsonValue,
+  status?: MessageStatus
 ) {
   return prisma.message.create({
     data: {
       conversationId,
       text,
       type: 'CALL',
+      status: status ?? 'SENT',
       metadata: metadata ?? Prisma.JsonNull,
     },
     include: {
@@ -71,7 +73,10 @@ export async function markMessagesAsRead(conversationId: string, userId: string)
   const result = await prisma.message.updateMany({
     where: {
       conversationId,
-      NOT: { senderId: userId },
+      OR: [
+        { senderId: { not: userId } },
+        { senderId: null }
+      ],
       status: { not: 'SEEN' },
     },
     data: { status: 'SEEN' },

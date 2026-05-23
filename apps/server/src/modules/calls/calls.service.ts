@@ -65,7 +65,7 @@ export async function createCall(
     callId: call.id,
     callType,
     status: 'RINGING',
-  });
+  }, 'SEEN');
 
   return { call, message };
 }
@@ -122,6 +122,7 @@ export async function acceptCall(callId: string, userId: string) {
 export async function rejectCall(callId: string, userId: string) {
   const call = await prisma.call.findFirst({
     where: { id: callId, participants: { some: { userId } } },
+    include: { participants: true },
   });
 
   if (!call) throw new ApiError(404, 'Call not found');
@@ -131,12 +132,24 @@ export async function rejectCall(callId: string, userId: string) {
     data: { status: 'REJECTED', leftAt: new Date() },
   });
 
+  const updatedParticipants = await prisma.callParticipant.findMany({
+    where: { callId }
+  });
+
   const isCallActive = call.status === 'ACCEPTED';
+  
+  // Check if any other targets (not the caller) are still RINGING or ACCEPTED
+  const callerId = call.startedById;
+  const otherTargets = updatedParticipants.filter(p => p.userId !== callerId);
+  const hasActiveOrRingingTargets = otherTargets.some(p => p.status === 'ACCEPTED' || p.status === 'RINGING');
+
+  const shouldRejectCall = !isCallActive && !hasActiveOrRingingTargets;
+
   const updatedCall = await prisma.call.update({
     where: { id: callId },
-    data: isCallActive 
-      ? {} // Do not change call status if it's already active
-      : { status: 'REJECTED', endedAt: new Date() },
+    data: shouldRejectCall 
+      ? { status: 'REJECTED', endedAt: new Date() }
+      : {},
     include: {
       participants: {
         include: { user: { select: { id: true, name: true, avatarUrl: true } } },
@@ -146,17 +159,17 @@ export async function rejectCall(callId: string, userId: string) {
   });
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
-  let message;
+  let message = null;
   
-  if (!isCallActive) {
+  if (shouldRejectCall) {
     message = await createSystemMessage(call.conversationId, `${callTypeLabel} call declined`, {
       callId,
       callType: call.callType,
       status: 'REJECTED',
-    });
+    }, 'SEEN');
   }
 
-  return { call: updatedCall, message };
+  return { call: updatedCall, message, shouldRejectCall };
 }
 
 export async function endCall(callId: string, userId: string) {
@@ -186,9 +199,18 @@ export async function endCall(callId: string, userId: string) {
 
   let updatedCall;
   if (shouldEndCall) {
+    // Mark any remaining ringing users as MISSED
+    await prisma.callParticipant.updateMany({
+      where: { callId, status: 'RINGING' },
+      data: { status: 'MISSED', leftAt: endedAt },
+    });
+
+    const wasEverAccepted = call.status === 'ACCEPTED';
+    const finalStatus = wasEverAccepted ? 'ENDED' : 'MISSED';
+
     updatedCall = await prisma.call.update({
       where: { id: callId },
-      data: { status: 'ENDED', endedAt },
+      data: { status: finalStatus, endedAt },
       include: {
         participants: {
           include: { user: { select: { id: true, name: true, avatarUrl: true } } },
@@ -216,14 +238,22 @@ export async function endCall(callId: string, userId: string) {
 
   let message = null;
   if (shouldEndCall) {
-    message = await createSystemMessage(call.conversationId, `${callTypeLabel} call ended${durationText}`, {
-      callId,
-      callType: call.callType,
-      status: 'ENDED',
-      duration: call.startedAt
-        ? Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000)
-        : 0,
-    });
+    if (updatedCall.status === 'MISSED') {
+      message = await createSystemMessage(call.conversationId, `Missed ${callTypeLabel.toLowerCase()} call`, {
+        callId,
+        callType: call.callType,
+        status: 'MISSED',
+      }, 'SENT');
+    } else {
+      message = await createSystemMessage(call.conversationId, `${callTypeLabel} call ended${durationText}`, {
+        callId,
+        callType: call.callType,
+        status: 'ENDED',
+        duration: call.startedAt
+          ? Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000)
+          : 0,
+      }, 'SEEN');
+    }
   }
 
   return { call: updatedCall, message, shouldEndCall };

@@ -38,6 +38,8 @@ export interface Message {
 export interface Conversation {
   id: string;
   type: 'DIRECT' | 'GROUP';
+  name?: string | null;
+  avatarUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   members: ConversationMember[];

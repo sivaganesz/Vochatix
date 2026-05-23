@@ -8,6 +8,7 @@ import { handleCallEvents } from './call.socket';
 import { AuthenticatedSocket } from '../../types/socket.types';
 import { prisma } from '../../prisma/prisma.service';
 import { logger } from '../../utils/logger';
+import { setSocketServer } from './socket.instance';
 
 export function createSocketServer(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
@@ -53,6 +54,8 @@ export function createSocketServer(httpServer: HttpServer): Server {
       logger.error(`Socket error: userId=${userId}`, error);
     });
   });
+
+  setSocketServer(io);
 
   return io;
 }

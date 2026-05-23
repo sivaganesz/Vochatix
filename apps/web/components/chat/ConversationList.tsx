@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, MessageSquare, LogOut } from 'lucide-react';
+import { Search, Plus, MessageSquare, LogOut, Users } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -15,15 +15,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { User } from '@/types/chat.types';
 import api from '@/lib/api';
 import { formatRelativeTime } from '@/lib/date';
+import { CreateGroupModal } from './CreateGroupModal';
 
 export function ConversationList() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { conversations, createDirectConversation } = useConversations();
+  const { conversations, createDirectConversation, createGroupConversation } = useConversations();
   const { activeConversationId, setActiveConversation, onlineUserIds } = useChatStore();
   const { logout } = useAuth();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isGroupOpen, setIsGroupOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -55,13 +57,32 @@ export function ConversationList() {
     setSearchResults([]);
   };
 
+  const handleCreateGroup = async (targetUserIds: string[], name: string) => {
+    const conversation = await createGroupConversation(targetUserIds, name);
+    setActiveConversation(conversation.id);
+    router.push(`/chat/${conversation.id}`);
+    setIsGroupOpen(false);
+  };
+
   const handleConversationClick = (conversationId: string) => {
     setActiveConversation(conversationId);
     router.push(`/chat/${conversationId}`);
   };
 
-  const getOtherUser = (conv: (typeof conversations)[0]) => {
-    return conv.members.find((m) => m.userId !== user?.id)?.user;
+  const getConversationDetails = (conv: (typeof conversations)[0]) => {
+    if (conv.type === 'GROUP') {
+      return {
+        name: conv.name || 'Group Chat',
+        avatarUrl: conv.avatarUrl,
+        isOnline: false, // Could aggregate online status for groups in the future
+      };
+    }
+    const otherUser = conv.members.find((m) => m.userId !== user?.id)?.user;
+    return {
+      name: otherUser?.name || 'Unknown User',
+      avatarUrl: otherUser?.avatarUrl,
+      isOnline: otherUser ? onlineUserIds.has(otherUser.id) : false,
+    };
   };
 
   return (
@@ -73,9 +94,16 @@ export function ConversationList() {
             <h1 className="text-xl font-bold text-gray-900">Messages</h1>
             <div className="flex items-center gap-1">
               <button
+                onClick={() => setIsGroupOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+                title="New Group Chat"
+              >
+                <Users className="h-5 w-5" />
+              </button>
+              <button
                 onClick={() => setIsSearchOpen(true)}
                 className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-                title="New conversation"
+                title="New Direct Message"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -112,9 +140,8 @@ export function ConversationList() {
             </div>
           ) : (
             conversations.map((conv) => {
-              const otherUser = getOtherUser(conv);
+              const details = getConversationDetails(conv);
               const lastMessage = conv.messages[0];
-              const isOnline = otherUser ? onlineUserIds.has(otherUser.id) : false;
               const isActive = conv.id === activeConversationId;
 
               return (
@@ -126,15 +153,15 @@ export function ConversationList() {
                   }`}
                 >
                   <Avatar
-                    name={otherUser?.name ?? 'Unknown'}
-                    avatarUrl={otherUser?.avatarUrl}
-                    isOnline={isOnline}
+                    name={details.name}
+                    avatarUrl={details.avatarUrl}
+                    isOnline={details.isOnline}
                     size="md"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className={`text-sm truncate ${conv.unreadCount ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>
-                        {otherUser?.name ?? 'Unknown'}
+                        {details.name}
                       </span>
                       {lastMessage && (
                         <span className={`text-xs flex-shrink-0 ml-2 ${conv.unreadCount ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
@@ -164,7 +191,7 @@ export function ConversationList() {
         </div>
       </div>
 
-      {/* User search modal */}
+      {/* User search modal for Direct Message */}
       <Modal
         isOpen={isSearchOpen}
         onClose={() => {
@@ -172,7 +199,7 @@ export function ConversationList() {
           setSearchQuery('');
           setSearchResults([]);
         }}
-        title="New Conversation"
+        title="New Direct Message"
       >
         <div className="space-y-4">
           <div className="relative">
@@ -218,6 +245,13 @@ export function ConversationList() {
           </div>
         </div>
       </Modal>
+      
+      {/* Create Group Modal */}
+      <CreateGroupModal
+        isOpen={isGroupOpen}
+        onClose={() => setIsGroupOpen(false)}
+        onCreateGroup={handleCreateGroup}
+      />
     </>
   );
 }

@@ -125,27 +125,30 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
     }
   });
 
-  // User B rejects the call
-  socket.on(SOCKET_EVENTS.CALL_REJECT, async (payload: CallRejectPayload) => {
+    socket.on(SOCKET_EVENTS.CALL_REJECT, async (payload: CallRejectPayload) => {
     try {
       const { callId } = payload;
 
-      // Cancel missed-call timeout
-      const timeout = callTimeouts.get(callId);
-      if (timeout) {
-        clearTimeout(timeout);
-        callTimeouts.delete(callId);
+      const { call, message, shouldRejectCall } = await rejectCall(callId, userId);
+
+      // Cancel missed-call timeout only if the WHOLE call is rejected
+      if (shouldRejectCall) {
+        const timeout = callTimeouts.get(callId);
+        if (timeout) {
+          clearTimeout(timeout);
+          callTimeouts.delete(callId);
+        }
       }
 
-      const { call, message } = await rejectCall(callId, userId);
-
-      // Notify all participants
+      // Notify all participants about the updated call state
       for (const participant of call.participants) {
         io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_REJECTED, { call });
       }
 
-      // Broadcast the declined call system message
-      io.to(`conversation:${call.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
+      // Broadcast the declined call system message if applicable
+      if (message) {
+        io.to(`conversation:${call.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
+      }
 
       logger.info(`Call ${callId} rejected by user ${userId}`);
     } catch (error) {
@@ -171,13 +174,17 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
       if (shouldEndCall) {
         // Notify all participants
         for (const participant of call.participants) {
-          io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_ENDED, { call });
+          if (call.status === 'MISSED') {
+            io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_MISSED, { call });
+          } else {
+            io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_ENDED, { call });
+          }
         }
-        // Broadcast the ended call system message
+        // Broadcast the ended/missed call system message
         if (message) {
           io.to(`conversation:${call.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
         }
-        logger.info(`Call ${callId} ended because user ${userId} left.`);
+        logger.info(`Call ${callId} ended because user ${userId} left. Status: ${call.status}`);
       } else {
         // Broadcast participant left to everyone else in the call
         for (const participant of call.participants) {

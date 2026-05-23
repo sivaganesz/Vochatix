@@ -18,14 +18,69 @@ export function useConversations() {
       const response = await api.post('/api/conversations/direct', { targetUserId });
       const conversation = response.data.data.conversation as Conversation;
       addConversation(conversation);
+      
+      // Join the socket room for the new conversation
+      const socket = (await import('@/lib/socket')).getSocket();
+      if (socket) {
+        socket.emit('conversation:join', { conversationId: conversation.id });
+      }
+      
       return conversation;
     },
     [addConversation]
+  );
+
+  const createGroupConversation = useCallback(
+    async (targetUserIds: string[], name?: string, avatarUrl?: string): Promise<Conversation> => {
+      const response = await api.post('/api/conversations/group', { targetUserIds, name, avatarUrl });
+      const conversation = response.data.data.conversation as Conversation;
+      addConversation(conversation);
+      
+      // Join the socket room for the new conversation
+      const socket = (await import('@/lib/socket')).getSocket();
+      if (socket) {
+        socket.emit('conversation:join', { conversationId: conversation.id });
+      }
+      
+      return conversation;
+    },
+    [addConversation]
+  );
+
+  const updateGroupName = useCallback(
+    async (conversationId: string, name: string): Promise<Conversation> => {
+      const response = await api.patch(`/api/conversations/${conversationId}`, { name });
+      return response.data.data.conversation as Conversation;
+    },
+    []
+  );
+
+  const addGroupMembers = useCallback(
+    async (conversationId: string, targetUserIds: string[]): Promise<Conversation> => {
+      const response = await api.post(`/api/conversations/${conversationId}/participants`, { targetUserIds });
+      return response.data.data.conversation as Conversation;
+    },
+    []
+  );
+
+  const leaveGroup = useCallback(
+    async (conversationId: string): Promise<void> => {
+      await api.delete(`/api/conversations/${conversationId}/participants/me`);
+    },
+    []
   );
 
   useEffect(() => {
     fetchConversations().catch(console.error);
   }, [fetchConversations]);
 
-  return { conversations, fetchConversations, createDirectConversation };
+  return { 
+    conversations, 
+    fetchConversations, 
+    createDirectConversation, 
+    createGroupConversation,
+    updateGroupName,
+    addGroupMembers,
+    leaveGroup
+  };
 }
