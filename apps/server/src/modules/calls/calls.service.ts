@@ -172,17 +172,41 @@ export async function endCall(callId: string, userId: string) {
     data: { status: 'LEFT', leftAt: new Date() },
   });
 
+  const remainingParticipants = call.participants.filter(
+    (p) => p.userId !== userId && (p.status === 'ACCEPTED' || p.status === 'RINGING')
+  );
+
+  const hasAcceptedParticipants = call.participants.some(
+    (p) => p.userId !== userId && p.status === 'ACCEPTED'
+  );
+
+  // End the call if no one is left, or if the caller leaves before anyone has accepted
+  const shouldEndCall = remainingParticipants.length === 0 || (!hasAcceptedParticipants && userId === call.startedById);
   const endedAt = new Date();
-  const updatedCall = await prisma.call.update({
-    where: { id: callId },
-    data: { status: 'ENDED', endedAt },
-    include: {
-      participants: {
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+
+  let updatedCall;
+  if (shouldEndCall) {
+    updatedCall = await prisma.call.update({
+      where: { id: callId },
+      data: { status: 'ENDED', endedAt },
+      include: {
+        participants: {
+          include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+        },
+        startedBy: { select: { id: true, name: true, avatarUrl: true } },
       },
-      startedBy: { select: { id: true, name: true, avatarUrl: true } },
-    },
-  });
+    });
+  } else {
+    updatedCall = await prisma.call.findUniqueOrThrow({
+      where: { id: callId },
+      include: {
+        participants: {
+          include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+        },
+        startedBy: { select: { id: true, name: true, avatarUrl: true } },
+      },
+    });
+  }
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
   let durationText = '';
@@ -190,16 +214,19 @@ export async function endCall(callId: string, userId: string) {
     durationText = ` · ${formatCallDuration(call.startedAt, endedAt)}`;
   }
 
-  const message = await createSystemMessage(call.conversationId, `${callTypeLabel} call ended${durationText}`, {
-    callId,
-    callType: call.callType,
-    status: 'ENDED',
-    duration: call.startedAt
-      ? Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000)
-      : 0,
-  });
+  let message = null;
+  if (shouldEndCall) {
+    message = await createSystemMessage(call.conversationId, `${callTypeLabel} call ended${durationText}`, {
+      callId,
+      callType: call.callType,
+      status: 'ENDED',
+      duration: call.startedAt
+        ? Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000)
+        : 0,
+    });
+  }
 
-  return { call: updatedCall, message };
+  return { call: updatedCall, message, shouldEndCall };
 }
 
 export async function markCallAsMissed(callId: string) {
@@ -298,5 +325,7 @@ export async function inviteToCall(callId: string, inviterId: string, targetUser
     },
   });
 
-  return { call: updatedCall, invitedUserIds: newTargetIds };
+  const inviter = updatedCall.participants.find(p => p.userId === inviterId)?.user;
+
+  return { call: updatedCall, invitedUserIds: newTargetIds, inviter };
 }

@@ -38,4 +38,9 @@ export interface Call {
 export interface IncomingCallState {
   call: Call;
   isCaller: boolean;
+  inviter?: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
 }

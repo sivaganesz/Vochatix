@@ -28,5 +28,6 @@ export const SOCKET_EVENTS = {
   CALL_PARTICIPANT_INCOMING: 'call:participant-incoming',
   CALL_PARTICIPANT_ACCEPTED: 'call:participant-accepted',
   CALL_PARTICIPANT_REJECTED: 'call:participant-rejected',
+  CALL_PARTICIPANT_LEFT: 'call:participant-left',
   CALL_INVITE_PARTICIPANTS: 'call:invite-participants',
 } as const;

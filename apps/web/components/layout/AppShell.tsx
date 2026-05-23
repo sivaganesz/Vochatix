@@ -46,6 +46,7 @@ export function AppShell({ children }: AppShellProps) {
       {incomingCall && !incomingCall.isCaller && (
         <IncomingCallModal
           call={incomingCall.call}
+          inviter={incomingCall.inviter}
           onAccept={() => handleAcceptCall(incomingCall.call.id)}
           onReject={() => rejectCall(incomingCall.call.id)}
         />

@@ -7,12 +7,17 @@ import { Call } from '@/types/call.types';
 
 interface IncomingCallModalProps {
   call: Call;
+  inviter?: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
   onAccept: () => void;
   onReject: () => void;
 }
 
-export function IncomingCallModal({ call, onAccept, onReject }: IncomingCallModalProps) {
-  const caller = call.startedBy;
+export function IncomingCallModal({ call, inviter, onAccept, onReject }: IncomingCallModalProps) {
+  const caller = inviter || call.startedBy;
   const isVideo = call.callType === 'VIDEO';
 
   return (

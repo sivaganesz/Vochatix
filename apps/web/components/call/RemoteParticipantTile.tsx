@@ -13,15 +13,18 @@ import { cn } from '@/lib/cn';
 interface RemoteParticipantTileProps {
   participant: Participant;
   className?: string;
+  source?: Track.Source;
 }
 
-export function RemoteParticipantTile({ participant, className }: RemoteParticipantTileProps) {
+export function RemoteParticipantTile({ participant, className, source }: RemoteParticipantTileProps) {
   const videoTrack = participant.getTrackPublication(Track.Source.Camera)?.videoTrack;
   const screenTrack = participant.getTrackPublication(Track.Source.ScreenShare)?.videoTrack;
   const isMuted = participant.getTrackPublication(Track.Source.Microphone)?.isMuted ?? true;
-  const isCameraOff = !participant.getTrackPublication(Track.Source.Camera)?.isSubscribed;
 
-  const activeTrack = screenTrack ?? videoTrack;
+  const activeTrack = source 
+    ? participant.getTrackPublication(source)?.videoTrack
+    : (screenTrack ?? videoTrack);
+  const activeSource = source || (screenTrack ? Track.Source.ScreenShare : Track.Source.Camera);
 
   return (
     <div
@@ -32,10 +35,8 @@ export function RemoteParticipantTile({ participant, className }: RemoteParticip
     >
       {activeTrack ? (
         <VideoTrack
-          trackRef={{ participant, publication: participant.getTrackPublication(
-            screenTrack ? Track.Source.ScreenShare : Track.Source.Camera
-          )!, source: screenTrack ? Track.Source.ScreenShare : Track.Source.Camera }}
-          className="w-full h-full object-cover"
+          trackRef={{ participant, publication: participant.getTrackPublication(activeSource)!, source: activeSource }}
+          className={cn("w-full h-full object-cover", activeSource === Track.Source.ScreenShare && "object-contain")}
         />
       ) : (
         <div className="flex flex-col items-center gap-3">

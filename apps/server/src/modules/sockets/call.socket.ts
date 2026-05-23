@@ -81,13 +81,14 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
   socket.on(SOCKET_EVENTS.CALL_INVITE_PARTICIPANTS, async (payload: CallInviteParticipantsPayload) => {
     try {
       const { callId, targetUserIds } = payload;
-      const { call, invitedUserIds } = await inviteToCall(callId, userId, targetUserIds);
+      const { call, invitedUserIds, inviter } = await inviteToCall(callId, userId, targetUserIds);
 
       // Notify each newly invited user
       for (const targetId of invitedUserIds) {
         io.to(`user:${targetId}`).emit(SOCKET_EVENTS.CALL_PARTICIPANT_INCOMING, {
           call,
           isCaller: false,
+          inviter,
         });
       }
 
@@ -153,7 +154,7 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
     }
   });
 
-  // A participant ends the call
+  // A participant ends or leaves the call
   socket.on(SOCKET_EVENTS.CALL_END, async (payload: CallEndPayload) => {
     try {
       const { callId } = payload;
@@ -165,20 +166,30 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
         callTimeouts.delete(callId);
       }
 
-      const { call, message } = await endCall(callId, userId);
+      const { call, message, shouldEndCall } = await endCall(callId, userId);
 
-      // Notify all participants
-      for (const participant of call.participants) {
-        io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_ENDED, { call });
+      if (shouldEndCall) {
+        // Notify all participants
+        for (const participant of call.participants) {
+          io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_ENDED, { call });
+        }
+        // Broadcast the ended call system message
+        if (message) {
+          io.to(`conversation:${call.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
+        }
+        logger.info(`Call ${callId} ended because user ${userId} left.`);
+      } else {
+        // Broadcast participant left to everyone else in the call
+        for (const participant of call.participants) {
+          if (participant.userId !== userId) {
+            io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_PARTICIPANT_LEFT, { call, leftUserId: userId });
+          }
+        }
+        logger.info(`User ${userId} left call ${callId}, call continues.`);
       }
-
-      // Broadcast the ended call system message
-      io.to(`conversation:${call.conversationId}`).emit(SOCKET_EVENTS.MESSAGE_NEW, { message });
-
-      logger.info(`Call ${callId} ended by user ${userId}`);
     } catch (error) {
-      socket.emit(SOCKET_EVENTS.CALL_ERROR, { message: 'Failed to end call' });
-      logger.error('Error ending call:', error);
+      socket.emit(SOCKET_EVENTS.CALL_ERROR, { message: 'Failed to end/leave call' });
+      logger.error('Error ending/leaving call:', error);
     }
   });
 }

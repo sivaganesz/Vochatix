@@ -101,7 +101,7 @@ export function CallControls({ onEndCall, showVideo = true, onInviteClick }: Cal
       <button
         onClick={onEndCall}
         className="h-12 w-12 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg"
-        title="End call"
+        title="Leave call"
       >
         <PhoneOff className="h-5 w-5" />
       </button>

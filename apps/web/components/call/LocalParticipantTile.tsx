@@ -10,13 +10,15 @@ import { useAuthStore } from '@/store/auth.store';
 
 interface LocalParticipantTileProps {
   className?: string;
+  source?: Track.Source;
 }
 
-export function LocalParticipantTile({ className }: LocalParticipantTileProps) {
-  const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
+export function LocalParticipantTile({ className, source = Track.Source.Camera }: LocalParticipantTileProps) {
+  const { localParticipant, isMicrophoneEnabled, isCameraEnabled, isScreenShareEnabled } = useLocalParticipant();
   const { user } = useAuthStore();
 
-  const cameraTrack = localParticipant.getTrackPublication(Track.Source.Camera);
+  const trackPub = localParticipant.getTrackPublication(source);
+  const isEnabled = source === Track.Source.ScreenShare ? isScreenShareEnabled : isCameraEnabled;
 
   return (
     <div
@@ -25,14 +27,14 @@ export function LocalParticipantTile({ className }: LocalParticipantTileProps) {
         className
       )}
     >
-      {isCameraEnabled && cameraTrack?.videoTrack ? (
+      {isEnabled && trackPub?.videoTrack ? (
         <VideoTrack
           trackRef={{
             participant: localParticipant,
-            publication: cameraTrack,
-            source: Track.Source.Camera,
+            publication: trackPub,
+            source,
           }}
-          className="w-full h-full object-cover scale-x-[-1]"
+          className={cn("w-full h-full", source === Track.Source.ScreenShare ? "object-contain scale-x-100" : "object-cover scale-x-[-1]")}
         />
       ) : (
         <div className="flex flex-col items-center gap-2">

@@ -140,6 +140,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
       clearCall();
     });
 
+    socket.on(SOCKET_EVENTS.CALL_PARTICIPANT_LEFT, ({ call, leftUserId }: { call: Call, leftUserId: string }) => {
+      setActiveCall(call);
+    });
+
     socket.on(SOCKET_EVENTS.CALL_MISSED, ({ call }: { call: Call }) => {
       setIncomingCall(null);
       clearCall();
@@ -158,6 +162,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       s.off(SOCKET_EVENTS.CALL_ACCEPTED);
       s.off(SOCKET_EVENTS.CALL_REJECTED);
       s.off(SOCKET_EVENTS.CALL_ENDED);
+      s.off(SOCKET_EVENTS.CALL_PARTICIPANT_LEFT);
       s.off(SOCKET_EVENTS.CALL_MISSED);
     };
   }, [

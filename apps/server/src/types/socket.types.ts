@@ -36,3 +36,8 @@ export interface CallInviteParticipantsPayload {
   callId: string;
   targetUserIds: string[];
 }
+
+export interface CallParticipantLeftPayload {
+  call: any; // We can use the actual Call type here
+  leftUserId: string;
+}
