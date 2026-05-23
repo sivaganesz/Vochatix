@@ -10,6 +10,7 @@ export function handleChatEvents(io: Server, socket: AuthenticatedSocket): void 
   const { userId } = socket;
 
   // Handle message send via socket
+  socket.removeAllListeners(SOCKET_EVENTS.MESSAGE_SEND);
   socket.on(SOCKET_EVENTS.MESSAGE_SEND, async (payload: MessageSendPayload) => {
     try {
       const { conversationId, text } = payload;
@@ -26,6 +27,7 @@ export function handleChatEvents(io: Server, socket: AuthenticatedSocket): void 
   });
 
   // Handle typing start
+  socket.removeAllListeners(SOCKET_EVENTS.TYPING_START);
   socket.on(SOCKET_EVENTS.TYPING_START, (payload: TypingPayload) => {
     try {
       const { conversationId } = payload;
@@ -39,6 +41,7 @@ export function handleChatEvents(io: Server, socket: AuthenticatedSocket): void 
   });
 
   // Handle typing stop
+  socket.removeAllListeners(SOCKET_EVENTS.TYPING_STOP);
   socket.on(SOCKET_EVENTS.TYPING_STOP, (payload: TypingPayload) => {
     try {
       const { conversationId } = payload;
@@ -52,6 +55,7 @@ export function handleChatEvents(io: Server, socket: AuthenticatedSocket): void 
   });
 
   // Join conversation rooms on socket connect
+  socket.removeAllListeners('conversation:join');
   socket.on('conversation:join', async ({ conversationId }: { conversationId: string }) => {
     try {
       // Verify membership before joining

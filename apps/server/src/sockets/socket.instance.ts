@@ -1,9 +1,16 @@
 import { Server } from 'socket.io';
 
-let ioInstance: Server | null = null;
+const globalForSocket = globalThis as unknown as {
+  ioInstance: Server | undefined;
+};
+
+let ioInstance: Server | null = globalForSocket.ioInstance ?? null;
 
 export function setSocketServer(io: Server) {
   ioInstance = io;
+  if (process.env.NODE_ENV !== 'production') {
+    globalForSocket.ioInstance = io;
+  }
 }
 
 export function getSocketServer(): Server {

@@ -26,6 +26,7 @@ export async function handlePresence(io: Server, socket: AuthenticatedSocket): P
 
   logger.info(`User ${userId} is now online`);
 
+  socket.removeAllListeners(SOCKET_EVENTS.DISCONNECT);
   socket.on(SOCKET_EVENTS.DISCONNECT, async () => {
     // Check if user has other active sockets
     const sockets = await io.in(`user:${userId}`).fetchSockets();

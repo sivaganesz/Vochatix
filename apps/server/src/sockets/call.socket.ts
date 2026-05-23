@@ -15,6 +15,7 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
   const { userId } = socket;
 
   // User A initiates a call
+  socket.removeAllListeners(SOCKET_EVENTS.CALL_INVITE);
   socket.on(SOCKET_EVENTS.CALL_INVITE, async (payload: CallInvitePayload) => {
     try {
       const { conversationId, callType, targetUserIds } = payload;
@@ -72,6 +73,7 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
   });
 
   // Invite more participants to an ongoing call
+  socket.removeAllListeners(SOCKET_EVENTS.CALL_INVITE_PARTICIPANTS);
   socket.on(SOCKET_EVENTS.CALL_INVITE_PARTICIPANTS, async (payload: CallInviteParticipantsPayload) => {
     try {
       const { callId, targetUserIds } = payload;
@@ -94,6 +96,7 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
   });
 
   // User B accepts the call
+  socket.removeAllListeners(SOCKET_EVENTS.CALL_ACCEPT);
   socket.on(SOCKET_EVENTS.CALL_ACCEPT, async (payload: CallAcceptPayload) => {
     try {
       const { callId } = payload;
@@ -119,7 +122,8 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
     }
   });
 
-    socket.on(SOCKET_EVENTS.CALL_REJECT, async (payload: CallRejectPayload) => {
+    socket.removeAllListeners(SOCKET_EVENTS.CALL_REJECT);
+  socket.on(SOCKET_EVENTS.CALL_REJECT, async (payload: CallRejectPayload) => {
     try {
       const { callId } = payload;
 
@@ -152,6 +156,7 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
   });
 
   // A participant ends or leaves the call
+  socket.removeAllListeners(SOCKET_EVENTS.CALL_END);
   socket.on(SOCKET_EVENTS.CALL_END, async (payload: CallEndPayload) => {
     try {
       const { callId } = payload;
