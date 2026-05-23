@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyJwt } from '../utils/jwt';
-import { ApiError } from '../utils/ApiError';
-import { prisma } from '../prisma/prisma.service';
+import { verifyJwt } from '@vochatix/auth';
+import { ApiError } from '../errors/ApiError';
+import { authRepository } from '../modules/auth/auth.repository';
 
 export async function authMiddleware(
   req: Request,
@@ -17,10 +17,7 @@ export async function authMiddleware(
     const token = authHeader.split(' ')[1];
     const payload = verifyJwt(token);
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, email: true, name: true, avatarUrl: true, isOnline: true },
-    });
+    const user = await authRepository.findUserById(payload.userId);
 
     if (!user) {
       throw new ApiError(401, 'User not found');

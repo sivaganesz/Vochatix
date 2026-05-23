@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
+import { asyncHandler } from '../../core/asyncHandler';
 import { getMessages, sendMessage, markMessagesAsRead } from './messages.service';
 import { SendMessageInput } from './messages.validation';
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
+import { asyncHandler } from '../../core/asyncHandler';
 import { registerUser, loginUser, getCurrentUser } from './auth.service';
 import { RegisterInput, LoginInput } from './auth.validation';
 

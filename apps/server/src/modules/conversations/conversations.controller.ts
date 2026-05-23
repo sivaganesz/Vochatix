@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
+import { asyncHandler } from '../../core/asyncHandler';
 import {
   getConversations,
   createDirectConversation,
@@ -15,7 +15,7 @@ import {
   UpdateGroupNameInput,
   AddGroupMembersInput
 } from './conversations.validation';
-import { getSocketServer } from '../sockets/socket.instance';
+import { getSocketServer } from '../../sockets/socket.instance';
 
 export const listConversations = asyncHandler(async (req: Request, res: Response) => {
   const conversations = await getConversations(req.user!.id);

@@ -1,7 +1,7 @@
-import { prisma } from '../../prisma/prisma.service';
-import { ApiError } from '../../utils/ApiError';
-import { createCallRoomName } from '../../utils/room-name';
-import { formatCallDuration } from '../../utils/date';
+import { callsRepository } from './calls.repository';
+import { ApiError } from '../../errors/ApiError';
+import { createCallRoomName } from '@vochatix/utils';
+import { formatCallDuration } from '@vochatix/utils';
 import { createSystemMessage } from '../messages/messages.service';
 import { CallType } from '@prisma/client';
 
@@ -12,13 +12,7 @@ export async function createCall(
   targetUserIds: string[]
 ) {
   // Validate conversation exists and caller is member
-  const conversation = await prisma.conversation.findFirst({
-    where: {
-      id: conversationId,
-      members: { some: { userId: startedById } },
-    },
-    include: { members: true },
-  });
+  const conversation = await callsRepository.findConversationWithMembers(conversationId, startedById);
 
   if (!conversation) throw new ApiError(403, 'Conversation not found or access denied');
 
@@ -37,27 +31,7 @@ export async function createCall(
   const roomName = createCallRoomName(conversationId);
   const allParticipantIds = [startedById, ...targetUserIds];
 
-  const call = await prisma.call.create({
-    data: {
-      conversationId,
-      roomName,
-      callType,
-      startedById,
-      participants: {
-        create: allParticipantIds.map((userId) => ({
-          userId,
-          status: 'RINGING',
-        })),
-      },
-    },
-    include: {
-      participants: {
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-      },
-      startedBy: { select: { id: true, name: true, avatarUrl: true } },
-      conversation: true,
-    },
-  });
+  const call = await callsRepository.createCall({ conversationId, roomName, callType, startedById }, targetUserIds);
 
   // Create system message
   const callTypeLabel = callType === 'VIDEO' ? 'Video' : 'Audio';
@@ -71,23 +45,11 @@ export async function createCall(
 }
 
 export async function getCallById(callId: string) {
-  return prisma.call.findUnique({
-    where: { id: callId },
-    include: {
-      participants: {
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-      },
-      startedBy: { select: { id: true, name: true, avatarUrl: true } },
-      conversation: true,
-    },
-  });
+  return callsRepository.findCallById(callId);
 }
 
 export async function acceptCall(callId: string, userId: string) {
-  const call = await prisma.call.findFirst({
-    where: { id: callId, participants: { some: { userId } } },
-    include: { participants: true },
-  });
+  const call = await callsRepository.findCallWithParticipant(callId, userId);
 
   if (!call) throw new ApiError(404, 'Call not found or access denied');
   
@@ -96,45 +58,21 @@ export async function acceptCall(callId: string, userId: string) {
     throw new ApiError(400, 'You are not ringing for this call');
   }
 
-  await prisma.callParticipant.update({
-    where: { callId_userId: { callId, userId } },
-    data: { status: 'ACCEPTED', joinedAt: new Date() },
-  });
+  await callsRepository.updateParticipantStatus(callId, userId, 'ACCEPTED', 'joinedAt');
 
-  const updatedCall = await prisma.call.update({
-    where: { id: callId },
-    data: {
-      status: 'ACCEPTED',
-      ...(call.status === 'RINGING' ? { startedAt: new Date() } : {}),
-    },
-    include: {
-      participants: {
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-      },
-      startedBy: { select: { id: true, name: true, avatarUrl: true } },
-      conversation: true,
-    },
-  });
+  const updatedCall = await callsRepository.updateCall(callId, { status: 'ACCEPTED', ...(call.status === 'RINGING' ? { startedAt: new Date() } : {}) });
 
   return updatedCall;
 }
 
 export async function rejectCall(callId: string, userId: string) {
-  const call = await prisma.call.findFirst({
-    where: { id: callId, participants: { some: { userId } } },
-    include: { participants: true },
-  });
+  const call = await callsRepository.findCallWithParticipant(callId, userId);
 
   if (!call) throw new ApiError(404, 'Call not found');
 
-  await prisma.callParticipant.update({
-    where: { callId_userId: { callId, userId } },
-    data: { status: 'REJECTED', leftAt: new Date() },
-  });
+  await callsRepository.updateParticipantStatus(callId, userId, 'REJECTED', 'leftAt');
 
-  const updatedParticipants = await prisma.callParticipant.findMany({
-    where: { callId }
-  });
+  const updatedParticipants = await callsRepository.getCallParticipants(callId);
 
   const isCallActive = call.status === 'ACCEPTED';
   
@@ -145,18 +83,7 @@ export async function rejectCall(callId: string, userId: string) {
 
   const shouldRejectCall = !isCallActive && !hasActiveOrRingingTargets;
 
-  const updatedCall = await prisma.call.update({
-    where: { id: callId },
-    data: shouldRejectCall 
-      ? { status: 'REJECTED', endedAt: new Date() }
-      : {},
-    include: {
-      participants: {
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-      },
-      startedBy: { select: { id: true, name: true, avatarUrl: true } },
-    },
-  });
+  const updatedCall = await callsRepository.updateCall(callId, shouldRejectCall ? { status: 'REJECTED', endedAt: new Date() } : {});
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
   let message = null;
@@ -173,17 +100,11 @@ export async function rejectCall(callId: string, userId: string) {
 }
 
 export async function endCall(callId: string, userId: string) {
-  const call = await prisma.call.findFirst({
-    where: { id: callId, participants: { some: { userId } } },
-    include: { participants: true },
-  });
+  const call = await callsRepository.findCallWithParticipant(callId, userId);
 
   if (!call) throw new ApiError(404, 'Call not found');
 
-  await prisma.callParticipant.update({
-    where: { callId_userId: { callId, userId } },
-    data: { status: 'LEFT', leftAt: new Date() },
-  });
+  await callsRepository.updateParticipantStatus(callId, userId, 'LEFT', 'leftAt');
 
   const remainingParticipants = call.participants.filter(
     (p) => p.userId !== userId && (p.status === 'ACCEPTED' || p.status === 'RINGING')
@@ -200,34 +121,14 @@ export async function endCall(callId: string, userId: string) {
   let updatedCall;
   if (shouldEndCall) {
     // Mark any remaining ringing users as MISSED
-    await prisma.callParticipant.updateMany({
-      where: { callId, status: 'RINGING' },
-      data: { status: 'MISSED', leftAt: endedAt },
-    });
+    await callsRepository.updateManyParticipants(callId, 'RINGING', { status: 'MISSED', leftAt: endedAt });
 
     const wasEverAccepted = call.status === 'ACCEPTED';
     const finalStatus = wasEverAccepted ? 'ENDED' : 'MISSED';
 
-    updatedCall = await prisma.call.update({
-      where: { id: callId },
-      data: { status: finalStatus, endedAt },
-      include: {
-        participants: {
-          include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-        },
-        startedBy: { select: { id: true, name: true, avatarUrl: true } },
-      },
-    });
+    updatedCall = await callsRepository.updateCall(callId, { status: finalStatus, endedAt });
   } else {
-    updatedCall = await prisma.call.findUniqueOrThrow({
-      where: { id: callId },
-      include: {
-        participants: {
-          include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-        },
-        startedBy: { select: { id: true, name: true, avatarUrl: true } },
-      },
-    });
+    updatedCall = await callsRepository.getCallOrThrow(callId);
   }
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
@@ -260,28 +161,13 @@ export async function endCall(callId: string, userId: string) {
 }
 
 export async function markCallAsMissed(callId: string) {
-  const call = await prisma.call.findUnique({
-    where: { id: callId },
-    include: { participants: true },
-  });
+  const call = await callsRepository.findCallWithParticipant(callId, undefined as any) /* manually fix this one */;
 
   if (!call || call.status !== 'RINGING') return null;
 
-  await prisma.callParticipant.updateMany({
-    where: { callId, status: 'RINGING' },
-    data: { status: 'MISSED', leftAt: new Date() },
-  });
+  await callsRepository.updateManyParticipants(callId, 'RINGING', { status: 'MISSED', leftAt: new Date() });
 
-  const updatedCall = await prisma.call.update({
-    where: { id: callId },
-    data: { status: 'MISSED', endedAt: new Date() },
-    include: {
-      participants: {
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-      },
-      startedBy: { select: { id: true, name: true, avatarUrl: true } },
-    },
-  });
+  const updatedCall = await callsRepository.updateCall(callId, { status: 'MISSED', endedAt: new Date() });
 
   const callTypeLabel = call.callType === 'VIDEO' ? 'Video' : 'Audio';
   const message = await createSystemMessage(call.conversationId, `Missed ${callTypeLabel.toLowerCase()} call`, {
@@ -294,10 +180,7 @@ export async function markCallAsMissed(callId: string) {
 }
 
 export async function inviteToCall(callId: string, inviterId: string, targetUserIds: string[]) {
-  const call = await prisma.call.findUnique({
-    where: { id: callId },
-    include: { participants: true, conversation: true },
-  });
+  const call = await callsRepository.findCallById(callId) /* returns more than needed but fine */;
 
   if (!call) throw new ApiError(404, 'Call not found');
   if (call.status !== 'RINGING' && call.status !== 'ACCEPTED') {
@@ -320,42 +203,16 @@ export async function inviteToCall(callId: string, inviterId: string, targetUser
 
   // Ensure new targets are conversation members
   for (const targetId of newTargetIds) {
-    await prisma.conversationMember.upsert({
-      where: {
-        conversationId_userId: {
-          conversationId: call.conversationId,
-          userId: targetId,
-        },
-      },
-      create: {
-        conversationId: call.conversationId,
-        userId: targetId,
-      },
-      update: {}, // Do nothing if exists
-    });
+    await callsRepository.upsertConversationMember(call.conversationId, targetId);
   }
 
   // Create new ringing participants
-  await prisma.callParticipant.createMany({
-    data: newTargetIds.map(userId => ({
-      callId,
-      userId,
-      status: 'RINGING',
-    })),
-  });
+  await callsRepository.addParticipants(callId, newTargetIds);
 
-  const updatedCall = await prisma.call.findUniqueOrThrow({
-    where: { id: callId },
-    include: {
-      participants: {
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
-      },
-      startedBy: { select: { id: true, name: true, avatarUrl: true } },
-      conversation: true,
-    },
-  });
+  const updatedCall = await callsRepository.getCallOrThrow(callId);
 
   const inviter = updatedCall.participants.find(p => p.userId === inviterId)?.user;
 
   return { call: updatedCall, invitedUserIds: newTargetIds, inviter };
 }
+

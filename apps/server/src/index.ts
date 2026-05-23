@@ -1,9 +1,9 @@
 import http from 'http';
 import { createApp } from './app';
-import { createSocketServer } from './modules/sockets/socket.server';
-import { env } from './config/env';
-import { logger } from './utils/logger';
-import { prisma } from './prisma/prisma.service';
+import { createSocketServer } from './sockets/socket.server';
+import { env } from '@vochatix/config';
+import { logger } from '@vochatix/logger';
+import { prisma } from '@vochatix/db';
 
 async function main() {
   // Test database connection

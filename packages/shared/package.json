@@ -1,13 +1,11 @@
 {
-  "name": "shared",
-  "version": "1.0.0",
-  "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "typescript": "^5.4.5"
+  "name": "@vochatix/shared",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@vochatix/types": "*",
+    "@vochatix/schemas": "*",
+    "@vochatix/socket-contracts": "*"
   }
 }

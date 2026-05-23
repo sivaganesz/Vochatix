@@ -22,7 +22,14 @@
     "react-hook-form": "^7.76.0",
     "socket.io-client": "^4.8.3",
     "zod": "^3.25.76",
-    "zustand": "^4.5.7"
+    "zustand": "^4.5.7",
+    "@vochatix/types": "*",
+    "@vochatix/schemas": "*",
+    "@vochatix/socket-contracts": "*",
+    "@vochatix/config": "*",
+    "@vochatix/utils": "*",
+    "@vochatix/logger": "*",
+    "@vochatix/shared": "*"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

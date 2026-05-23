@@ -1,14 +1,12 @@
-import { prisma } from '../../prisma/prisma.service';
-import { hashPassword, comparePassword } from '../../utils/password';
-import { signJwt } from '../../utils/jwt';
-import { ApiError } from '../../utils/ApiError';
+import { authRepository } from './auth.repository';
+import { hashPassword, comparePassword } from '@vochatix/auth';
+import { signJwt } from '@vochatix/auth';
+import { ApiError } from '../../errors/ApiError';
 import { RegisterInput, LoginInput } from './auth.validation';
 import { AuthResponse } from './auth.types';
 
 export async function registerUser(input: RegisterInput): Promise<AuthResponse> {
-  const existingUser = await prisma.user.findUnique({
-    where: { email: input.email },
-  });
+  const existingUser = await authRepository.findUserByEmail(input.email);
 
   if (existingUser) {
     throw new ApiError(409, 'Email already registered');
@@ -16,14 +14,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthResponse> 
 
   const passwordHash = await hashPassword(input.password);
 
-  const user = await prisma.user.create({
-    data: {
-      name: input.name,
-      email: input.email,
-      passwordHash,
-    },
-    select: { id: true, name: true, email: true, avatarUrl: true },
-  });
+  const user = await authRepository.createUser({ name: input.name, email: input.email, passwordHash });
 
   const token = signJwt({ userId: user.id, email: user.email });
 
@@ -31,9 +22,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthResponse> 
 }
 
 export async function loginUser(input: LoginInput): Promise<AuthResponse> {
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
-  });
+  const user = await authRepository.findUserByEmail(input.email);
 
   if (!user) {
     throw new ApiError(401, 'Invalid email or password');
@@ -54,21 +43,7 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
 }
 
 export async function getCurrentUser(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatarUrl: true,
-      dob: true,
-      bio: true,
-      socialLinks: true,
-      isOnline: true,
-      lastSeenAt: true,
-      createdAt: true,
-    },
-  });
+  const user = await authRepository.findUserById(userId);
 
   if (!user) {
     throw new ApiError(404, 'User not found');
@@ -76,3 +51,4 @@ export async function getCurrentUser(userId: string) {
 
   return user;
 }
+

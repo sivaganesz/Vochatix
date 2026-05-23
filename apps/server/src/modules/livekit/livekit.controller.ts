@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
+import { asyncHandler } from '../../core/asyncHandler';
 import { generateLiveKitToken } from './livekit.service';
 import { GenerateTokenInput } from './livekit.validation';
 

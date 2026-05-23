@@ -1,7 +1,7 @@
 import { AccessToken } from 'livekit-server-sdk';
-import { prisma } from '../../prisma/prisma.service';
-import { ApiError } from '../../utils/ApiError';
-import { env } from '../../config/env';
+import { prisma } from '@vochatix/db';
+import { ApiError } from '../../errors/ApiError';
+import { env } from '@vochatix/config';
 
 export async function generateLiveKitToken(callId: string, userId: string) {
   const call = await prisma.call.findUnique({

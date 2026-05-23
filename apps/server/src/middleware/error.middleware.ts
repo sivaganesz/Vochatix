@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/ApiError';
+import { ApiError } from '../errors/ApiError';
 import { ZodError } from 'zod';
-import { logger } from '../utils/logger';
+import { logger } from '@vochatix/logger';
 
 export function errorMiddleware(
   error: Error,

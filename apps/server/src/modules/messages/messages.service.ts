@@ -1,47 +1,28 @@
 import { Prisma, MessageStatus } from '@prisma/client';
-import { prisma } from '../../prisma/prisma.service';
-import { ApiError } from '../../utils/ApiError';
+import { ApiError } from '../../errors/ApiError';
 import { validateConversationMembership } from '../conversations/conversations.service';
+import { messagesRepository } from './messages.repository';
 
 export async function getMessages(conversationId: string, userId: string) {
   const isMember = await validateConversationMembership(conversationId, userId);
   if (!isMember) throw new ApiError(403, 'Not a member of this conversation');
 
-  return prisma.message.findMany({
-    where: { conversationId },
-    include: {
-      sender: {
-        select: { id: true, name: true, avatarUrl: true },
-      },
-    },
-    orderBy: { createdAt: 'asc' },
-    take: 100,
-  });
+  return messagesRepository.findMessagesByConversation(conversationId);
 }
 
 export async function sendMessage(conversationId: string, senderId: string, text: string) {
   const isMember = await validateConversationMembership(conversationId, senderId);
   if (!isMember) throw new ApiError(403, 'Not a member of this conversation');
 
-  const message = await prisma.message.create({
-    data: {
-      conversationId,
-      senderId,
-      text,
-      type: 'TEXT',
-    },
-    include: {
-      sender: {
-        select: { id: true, name: true, avatarUrl: true },
-      },
-    },
+  const message = await messagesRepository.createMessage({
+    conversationId,
+    senderId,
+    text,
+    type: 'TEXT',
   });
 
-  // Update conversation updatedAt
-  await prisma.conversation.update({
-    where: { id: conversationId },
-    data: { updatedAt: new Date() },
-  });
+  // Update conversation updatedAt (should ideally call conversation service)
+  await messagesRepository.updateConversationUpdatedAt(conversationId);
 
   return message;
 }
@@ -50,19 +31,14 @@ export async function createSystemMessage(
   conversationId: string,
   text: string,
   metadata?: Prisma.InputJsonValue,
-  status?: MessageStatus
+  status?: any
 ) {
-  return prisma.message.create({
-    data: {
-      conversationId,
-      text,
-      type: 'CALL',
-      status: status ?? 'SENT',
-      metadata: metadata ?? Prisma.JsonNull,
-    },
-    include: {
-      sender: { select: { id: true, name: true, avatarUrl: true } },
-    },
+  return messagesRepository.createMessage({
+    conversationId,
+    text,
+    type: 'CALL',
+    status: status ?? 'SENT',
+    metadata: metadata ?? Prisma.JsonNull,
   });
 }
 
@@ -70,17 +46,6 @@ export async function markMessagesAsRead(conversationId: string, userId: string)
   const isMember = await validateConversationMembership(conversationId, userId);
   if (!isMember) throw new ApiError(403, 'Not a member of this conversation');
 
-  const result = await prisma.message.updateMany({
-    where: {
-      conversationId,
-      OR: [
-        { senderId: { not: userId } },
-        { senderId: null }
-      ],
-      status: { not: 'SEEN' },
-    },
-    data: { status: 'SEEN' },
-  });
-
+  const result = await messagesRepository.markMessagesAsSeen(conversationId, userId);
   return result.count;
 }

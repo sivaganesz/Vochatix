@@ -1,22 +1,25 @@
 {
-  "name": "realtime-chat-video-app",
-  "version": "1.0.0",
-  "private": true,
-  "packageManager": "npm@10.9.2",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=web",
-    "dev:server": "turbo run dev --filter=server",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2",
-    "turbo": "^2.9.14"
-  }
+    "name":  "realtime-chat-video-app",
+    "version":  "1.0.0",
+    "private":  true,
+    "packageManager":  "npm@10.9.2",
+    "workspaces":  [
+                       "apps/*",
+                       "packages/*"
+                   ],
+    "scripts":  {
+                    "dev":  "turbo run dev",
+                    "dev:web":  "turbo run dev --filter=web",
+                    "dev:server":  "turbo run dev --filter=server",
+                    "build":  "turbo run build",
+                    "lint":  "turbo run lint",
+                    "typecheck":  "turbo run typecheck",
+                    "architecture:check":  "depcruise apps packages --config .dependency-cruiser.js"
+                },
+    "devDependencies":  {
+                            "concurrently":  "^8.2.2",
+                            "dependency-cruiser":  "^17.4.2",
+                            "eslint-plugin-boundaries":  "^6.0.2",
+                            "turbo":  "^2.9.14"
+                        }
 }

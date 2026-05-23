@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
+import { asyncHandler } from '../../core/asyncHandler';
 import { createCall, getCallById, acceptCall, rejectCall, endCall, inviteToCall } from './calls.service';
-import { ApiError } from '../../utils/ApiError';
+import { ApiError } from '../../errors/ApiError';
 import { CallType } from '@prisma/client';
 
 export const initiateCall = asyncHandler(async (req: Request, res: Response) => {

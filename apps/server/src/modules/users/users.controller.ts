@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
+import { asyncHandler } from '../../core/asyncHandler';
 import { getAllUsers, searchUsers, getUserById, updateUser } from './users.service';
-import { ApiError } from '../../utils/ApiError';
+import { ApiError } from '../../errors/ApiError';
 
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
   const users = await getAllUsers(req.user!.id);

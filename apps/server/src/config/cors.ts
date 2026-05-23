@@ -1,5 +1,5 @@
 import { CorsOptions } from 'cors';
-import { env } from './env';
+import { env } from '@vochatix/config';
 
 export const corsOptions: CorsOptions = {
   origin: env.CLIENT_URLS,

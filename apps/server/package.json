@@ -10,10 +10,20 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@vochatix/auth": "*",
+    "@vochatix/config": "*",
+    "@vochatix/db": "*",
+    "@vochatix/events": "*",
+    "@vochatix/logger": "*",
+    "@vochatix/schemas": "*",
+    "@vochatix/shared": "*",
+    "@vochatix/socket-contracts": "*",
+    "@vochatix/types": "*",
+    "@vochatix/utils": "*",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
@@ -33,9 +43,9 @@
     "@typescript-eslint/eslint-plugin": "^7.13.0",
     "@typescript-eslint/parser": "^7.13.0",
     "eslint": "^8.57.0",
-    "prisma": "^5.22.0",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.15.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.7"
   }
 }
