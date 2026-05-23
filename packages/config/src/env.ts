@@ -2,8 +2,9 @@ import path from 'path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-// Load .env from the server app directory, works regardless of CWD
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Load .env from the current working directory (apps/server when tsx runs there)
+// Falls back gracefully if already loaded by the caller
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
