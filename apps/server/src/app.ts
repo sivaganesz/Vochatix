@@ -7,7 +7,7 @@ import userRoutes from './modules/users/users.routes';
 import conversationRoutes from './modules/conversations/conversations.routes';
 import messageRoutes from './modules/messages/messages.routes';
 import callRoutes from './modules/calls/calls.routes';
-import liveKitRoutes from './modules/livekit/livekit.routes';
+import liveKitRoutes from './integrations/livekit/livekit.routes';
 
 export function createApp() {
   const app = express();
@@ -40,3 +40,4 @@ export function createApp() {
 
   return app;
 }
+

@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@vochatix/db';
 
 async function main() {
   const messages = await prisma.message.findMany({
@@ -26,3 +24,4 @@ main()
     prisma.$disconnect();
     process.exit(1);
   });
+

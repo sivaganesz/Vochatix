@@ -20,7 +20,6 @@
     "@vochatix/events": "*",
     "@vochatix/logger": "*",
     "@vochatix/schemas": "*",
-    "@vochatix/shared": "*",
     "@vochatix/socket-contracts": "*",
     "@vochatix/types": "*",
     "@vochatix/utils": "*",

@@ -28,8 +28,7 @@
     "@vochatix/socket-contracts": "*",
     "@vochatix/config": "*",
     "@vochatix/utils": "*",
-    "@vochatix/logger": "*",
-    "@vochatix/shared": "*"
+    "@vochatix/logger": "*"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -17,6 +17,7 @@ export interface CallParticipant {
 }
 
 export interface Call {
+  conversation?: any;
   id: string;
   conversationId: string;
   roomName: string;
@@ -44,3 +45,4 @@ export interface IncomingCallState {
     avatarUrl: string | null;
   };
 }
+
