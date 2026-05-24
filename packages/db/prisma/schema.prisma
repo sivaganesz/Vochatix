@@ -47,6 +47,9 @@ model ConversationMember {
   conversationId String
   userId         String
   joinedAt       DateTime @default(now())
+  isMuted        Boolean  @default(false)
+  isUnread       Boolean  @default(false)
+  isHidden       Boolean  @default(false)
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)

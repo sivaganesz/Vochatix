@@ -16,11 +16,12 @@ import { User } from '@/types/chat.types';
 import api from '@/lib/api';
 import { formatRelativeTime } from '@/lib/date';
 import { CreateGroupModal } from './CreateGroupModal';
+import { ConversationCard } from './ConversationCard';
 
 export function ConversationList() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { conversations, createDirectConversation, createGroupConversation } = useConversations();
+  const { conversations, createDirectConversation, createGroupConversation, toggleMuteConversation, toggleUnreadConversation, hideConversation } = useConversations();
   const { activeConversationId, setActiveConversation, onlineUserIds } = useChatStore();
   const { logout } = useAuth();
 
@@ -160,46 +161,16 @@ export function ConversationList() {
               const isActive = conv.id === activeConversationId;
 
               return (
-                <button
+                <ConversationCard
                   key={conv.id}
+                  conversation={conv}
+                  isActive={isActive}
+                  details={details}
                   onClick={() => handleConversationClick(conv.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${
-                    isActive ? 'bg-blue-50 hover:bg-blue-50' : ''
-                  }`}
-                >
-                  <Avatar
-                    name={details.name}
-                    avatarUrl={details.avatarUrl}
-                    isOnline={details.isOnline}
-                    size="md"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-sm truncate ${conv.unreadCount ? 'font-bold text-gray-900' : 'font-semibold text-gray-900'}`}>
-                        {details.name}
-                      </span>
-                      {lastMessage && (
-                        <span className={`text-xs flex-shrink-0 ml-2 ${conv.unreadCount ? 'text-blue-500 font-medium' : 'text-gray-400'}`}>
-                          {formatRelativeTime(lastMessage.createdAt)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <p className={`text-xs truncate pr-2 ${conv.unreadCount ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
-                        {lastMessage ? (
-                          lastMessage.type === 'CALL' ? `📞 ${lastMessage.text}` : lastMessage.text ?? ''
-                        ) : (
-                          ''
-                        )}
-                      </p>
-                      {conv.unreadCount && conv.unreadCount > 0 ? (
-                        <span className="flex-shrink-0 bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center leading-none">
-                          {conv.unreadCount}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </button>
+                  onMute={() => toggleMuteConversation(conv.id)}
+                  onMarkUnread={() => toggleUnreadConversation(conv.id)}
+                  onRemove={() => hideConversation(conv.id)}
+                />
               );
             })
           )}

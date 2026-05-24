@@ -74,6 +74,35 @@ export function useConversations() {
     fetchConversations().catch(console.error);
   }, [fetchConversations]);
 
+  const toggleMuteConversation = useCallback(
+    async (conversationId: string): Promise<void> => {
+      await api.patch(`/api/conversations/${conversationId}/mute`);
+      fetchConversations();
+    },
+    [fetchConversations]
+  );
+
+  const toggleUnreadConversation = useCallback(
+    async (conversationId: string): Promise<void> => {
+      await api.patch(`/api/conversations/${conversationId}/mark-unread`);
+      fetchConversations();
+    },
+    [fetchConversations]
+  );
+
+  const hideConversation = useCallback(
+    async (conversationId: string): Promise<void> => {
+      await api.patch(`/api/conversations/${conversationId}/remove-from-view`);
+      
+      const { activeConversationId, setActiveConversation } = useChatStore.getState();
+      if (activeConversationId === conversationId) {
+        setActiveConversation(null);
+      }
+      fetchConversations();
+    },
+    [fetchConversations]
+  );
+
   return { 
     conversations, 
     fetchConversations, 
@@ -81,6 +110,9 @@ export function useConversations() {
     createGroupConversation,
     updateGroupName,
     addGroupMembers,
-    leaveGroup
+    leaveGroup,
+    toggleMuteConversation,
+    toggleUnreadConversation,
+    hideConversation
   };
 }

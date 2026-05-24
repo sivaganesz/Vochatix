@@ -170,3 +170,33 @@ export async function validateConversationMembership(
   const member = await conversationsRepository.checkMembership(conversationId, userId);
   return !!member;
 }
+
+export async function toggleMute(conversationId: string, userId: string) {
+  const member = await conversationsRepository.checkMembership(conversationId, userId);
+  if (!member) throw new ApiError(404, 'Not a member of this conversation');
+
+  const updated = await conversationsRepository.updateMemberState(conversationId, userId, {
+    isMuted: !member.isMuted,
+  });
+  return { isMuted: updated.isMuted };
+}
+
+export async function toggleUnread(conversationId: string, userId: string) {
+  const member = await conversationsRepository.checkMembership(conversationId, userId);
+  if (!member) throw new ApiError(404, 'Not a member of this conversation');
+
+  const updated = await conversationsRepository.updateMemberState(conversationId, userId, {
+    isUnread: !member.isUnread,
+  });
+  return { isUnread: updated.isUnread };
+}
+
+export async function hideConversation(conversationId: string, userId: string) {
+  const member = await conversationsRepository.checkMembership(conversationId, userId);
+  if (!member) throw new ApiError(404, 'Not a member of this conversation');
+
+  const updated = await conversationsRepository.updateMemberState(conversationId, userId, {
+    isHidden: true,
+  });
+  return { isHidden: updated.isHidden };
+}

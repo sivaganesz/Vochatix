@@ -45,5 +45,21 @@ export const messagesRepository = {
       },
       data: { status: 'SEEN' },
     });
+  },
+
+  unhideAndMarkUnread(conversationId: string, senderId: string) {
+    return prisma.$transaction([
+      prisma.conversationMember.updateMany({
+        where: { conversationId },
+        data: { isHidden: false }
+      }),
+      prisma.conversationMember.updateMany({
+        where: { 
+          conversationId,
+          userId: { not: senderId }
+        },
+        data: { isUnread: true }
+      })
+    ]);
   }
 };

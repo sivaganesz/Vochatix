@@ -32,7 +32,14 @@ const conversationInclude = (userId: string) => ({
 export const conversationsRepository = {
   findUserConversations(userId: string) {
     return prisma.conversation.findMany({
-      where: { members: { some: { userId } } },
+      where: { 
+        members: { 
+          some: { 
+            userId,
+            isHidden: false
+          } 
+        } 
+      },
       include: conversationInclude(userId),
       orderBy: { updatedAt: 'desc' },
     });
@@ -150,6 +157,13 @@ export const conversationsRepository = {
       include: {
         sender: { select: { id: true, name: true, avatarUrl: true } }
       }
+    });
+  },
+
+  updateMemberState(conversationId: string, userId: string, data: { isMuted?: boolean; isUnread?: boolean; isHidden?: boolean }) {
+    return prisma.conversationMember.update({
+      where: { conversationId_userId: { conversationId, userId } },
+      data,
     });
   }
 };

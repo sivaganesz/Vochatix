@@ -6,7 +6,10 @@ import {
   getConversation,
   updateGroup,
   addMembers,
-  leaveGroup
+  leaveGroup,
+  toggleMute,
+  toggleUnread,
+  hideConversation
 } from './conversations.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
@@ -20,6 +23,7 @@ import {
 const router = Router();
 
 router.use(authMiddleware);
+
 router.get('/', listConversations);
 router.post('/direct', validateBody(createDirectConversationSchema), createDirect);
 router.post('/group', validateBody(createGroupConversationSchema), createGroup);
@@ -27,5 +31,9 @@ router.get('/:conversationId', getConversation);
 router.patch('/:conversationId', validateBody(updateGroupNameSchema), updateGroup);
 router.post('/:conversationId/participants', validateBody(addGroupMembersSchema), addMembers);
 router.delete('/:conversationId/participants/me', leaveGroup);
+
+router.patch('/:conversationId/mute', toggleMute);
+router.patch('/:conversationId/mark-unread', toggleUnread);
+router.patch('/:conversationId/remove-from-view', hideConversation);
 
 export default router;

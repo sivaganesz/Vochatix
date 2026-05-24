@@ -23,6 +23,7 @@ export async function sendMessage(conversationId: string, senderId: string, text
 
   // Update conversation updatedAt (should ideally call conversation service)
   await messagesRepository.updateConversationUpdatedAt(conversationId);
+  await messagesRepository.unhideAndMarkUnread(conversationId, senderId);
 
   return message;
 }
@@ -33,13 +34,17 @@ export async function createSystemMessage(
   metadata?: Prisma.InputJsonValue,
   status?: any
 ) {
-  return messagesRepository.createMessage({
+  const message = await messagesRepository.createMessage({
     conversationId,
     text,
     type: 'CALL',
     status: status ?? 'SENT',
     metadata: metadata ?? Prisma.JsonNull,
   });
+
+  await messagesRepository.unhideAndMarkUnread(conversationId, 'SYSTEM');
+
+  return message;
 }
 
 export async function markMessagesAsRead(conversationId: string, userId: string) {

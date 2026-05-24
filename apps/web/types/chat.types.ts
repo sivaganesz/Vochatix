@@ -15,6 +15,9 @@ export interface ConversationMember {
   conversationId: string;
   userId: string;
   joinedAt: string;
+  isMuted: boolean;
+  isUnread: boolean;
+  isHidden: boolean;
   user: User;
 }
 

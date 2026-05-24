@@ -8,6 +8,9 @@ import {
   updateGroupName,
   addGroupMembers,
   leaveGroup as leaveGroupService,
+  toggleMute as toggleMuteService,
+  toggleUnread as toggleUnreadService,
+  hideConversation as hideConversationService
 } from './conversations.service';
 import { 
   CreateDirectConversationInput, 
@@ -68,4 +71,19 @@ export const leaveGroup = asyncHandler(async (req: Request, res: Response) => {
 export const getConversation = asyncHandler(async (req: Request, res: Response) => {
   const conversation = await getConversationById(req.params.conversationId, req.user!.id);
   res.json({ success: true, data: { conversation } });
+});
+
+export const toggleMute = asyncHandler(async (req: Request, res: Response) => {
+  const result = await toggleMuteService(req.params.conversationId, req.user!.id);
+  res.json({ success: true, data: result });
+});
+
+export const toggleUnread = asyncHandler(async (req: Request, res: Response) => {
+  const result = await toggleUnreadService(req.params.conversationId, req.user!.id);
+  res.json({ success: true, data: result });
+});
+
+export const hideConversation = asyncHandler(async (req: Request, res: Response) => {
+  const result = await hideConversationService(req.params.conversationId, req.user!.id);
+  res.json({ success: true, data: result });
 });
