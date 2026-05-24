@@ -25,10 +25,10 @@ export const callsRepository = {
       data: {
         ...data,
         participants: {
-          create: [data.startedById, ...targetUserIds].map((userId) => ({
-            userId,
-            status: 'RINGING',
-          })),
+          create: [
+            { userId: data.startedById, status: 'ACCEPTED', joinedAt: new Date() },
+            ...targetUserIds.map((userId) => ({ userId, status: 'RINGING' })),
+          ],
         },
       },
       include: callInclude,
