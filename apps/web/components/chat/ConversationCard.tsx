@@ -93,7 +93,7 @@ export function ConversationCard({
         onClick={onClick}
         className={`group relative w-full flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors text-left ${
           isActive ? 'bg-blue-50 hover:bg-blue-50' : ''
-        }`}
+        } ${showMenu ? 'z-10' : ''}`}
       >
         <Avatar
           name={details.name}

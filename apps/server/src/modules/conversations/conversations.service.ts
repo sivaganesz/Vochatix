@@ -53,6 +53,10 @@ export async function createDirectConversation(userId: string, targetUserId: str
   const existing = await conversationsRepository.findDirectConversation(userId, targetUserId);
 
   if (existing) {
+    await conversationsRepository.updateMemberState(existing.id, userId, {
+      isHidden: false,
+    });
+    
     const { _count, ...rest } = existing;
     return {
       ...rest,

@@ -27,35 +27,45 @@ export function ConversationList() {
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isGroupOpen, setIsGroupOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  
+  // Inline search (searches existing conversations locally)
+  const [chatListQuery, setChatListQuery] = useState('');
+  
+  // Modal search (searches all users globally via API)
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [modalSearchResults, setModalSearchResults] = useState<User[]>([]);
+  const [isModalSearching, setIsModalSearching] = useState(false);
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
+  const handleModalSearch = async (query: string) => {
+    setModalSearchQuery(query);
     if (query.length < 1) {
-      setSearchResults([]);
+      setModalSearchResults([]);
       return;
     }
 
-    setIsSearching(true);
+    setIsModalSearching(true);
     try {
       const response = await api.get(`/api/users/search?q=${encodeURIComponent(query)}`);
-      setSearchResults(response.data.data.users as User[]);
+      setModalSearchResults(response.data.data.users as User[]);
     } catch {
-      setSearchResults([]);
+      setModalSearchResults([]);
     } finally {
-      setIsSearching(false);
+      setIsModalSearching(false);
     }
   };
 
   const handleStartChat = async (targetUser: User) => {
-    const conversation = await createDirectConversation(targetUser.id);
-    setActiveConversation(conversation.id);
-    router.push(`/chat/${conversation.id}`);
-    setIsSearchOpen(false);
-    setSearchQuery('');
-    setSearchResults([]);
+    try {
+      const conversation = await createDirectConversation(targetUser.id);
+      setActiveConversation(conversation.id);
+      router.push(`/chat/${conversation.id}`);
+      setIsSearchOpen(false);
+      setModalSearchQuery('');
+      setModalSearchResults([]);
+    } catch (error) {
+      console.error('Failed to start chat:', error);
+      alert('Failed to start conversation. Please try again.');
+    }
   };
 
   const handleCreateGroup = async (targetUserIds: string[], name: string) => {
@@ -91,62 +101,49 @@ export function ConversationList() {
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="px-4 py-4 border-b border-gray-100 flex flex-col gap-4">
-          {/* Current user */}
-          {user && (
-            <button 
-              onClick={() => router.push('/profile')}
-              className="flex items-center gap-3 px-2 hover:bg-gray-50 rounded-lg py-1.5 transition-colors text-left w-full"
-              title="View my profile"
-            >
-              <Avatar name={user.name} avatarUrl={user.avatarUrl} size="md" isOnline />
-              <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold text-gray-900 truncate">{user.name}</span>
-                <span className="text-xs text-gray-500 truncate">{user.email}</span>
-              </div>
-            </button>
-          )}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">Messages</h2>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+                title="New Chat"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => setIsGroupOpen(true)}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+                title="New Group"
+              >
+                <Users className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => logout()}
+                className="p-2 hover:bg-red-50 hover:text-red-600 rounded-full text-gray-500 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
 
           {/* Inline search field */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search people..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search chats..."
+              value={chatListQuery}
+              onChange={(e) => setChatListQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-transparent bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white focus:border-transparent transition-all"
             />
           </div>
         </div>
 
-        {/* List Content (Search Results or Conversations) */}
+        {/* List Content (Conversations) */}
         <div className="flex-1 overflow-y-auto">
-          {searchQuery.length > 0 ? (
-            // Search Results View
-            <div className="py-2">
-              {isSearching ? (
-                <div className="flex justify-center py-6">
-                  <Spinner />
-                </div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => handleStartChat(u)}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <Avatar name={u.name} avatarUrl={u.avatarUrl} size="md" isOnline={u.isOnline} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{u.email}</p>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <p className="text-center text-sm text-gray-500 py-6">No users found</p>
-              )}
-            </div>
-          ) : conversations.length === 0 ? (
+          {conversations.length === 0 ? (
             // Empty State
             <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
               <MessageSquare className="h-12 w-12 text-gray-300 mb-3" />
@@ -155,9 +152,14 @@ export function ConversationList() {
             </div>
           ) : (
             // Conversations List
-            conversations.map((conv) => {
+            conversations
+              .filter(conv => {
+                if (!chatListQuery) return true;
+                const details = getConversationDetails(conv);
+                return details.name.toLowerCase().includes(chatListQuery.toLowerCase());
+              })
+              .map((conv) => {
               const details = getConversationDetails(conv);
-              const lastMessage = conv.messages[0];
               const isActive = conv.id === activeConversationId;
 
               return (
@@ -182,8 +184,8 @@ export function ConversationList() {
         isOpen={isSearchOpen}
         onClose={() => {
           setIsSearchOpen(false);
-          setSearchQuery('');
-          setSearchResults([]);
+          setModalSearchQuery('');
+          setModalSearchResults([]);
         }}
         title="New Direct Message"
       >
@@ -193,21 +195,21 @@ export function ConversationList() {
             <input
               type="text"
               placeholder="Search by name or email..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              value={modalSearchQuery}
+              onChange={(e) => handleModalSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
           </div>
 
           <div className="min-h-[120px]">
-            {isSearching ? (
+            {isModalSearching ? (
               <div className="flex justify-center py-6">
                 <Spinner />
               </div>
-            ) : searchResults.length > 0 ? (
+            ) : modalSearchResults.length > 0 ? (
               <div className="space-y-1">
-                {searchResults.map((u) => (
+                {modalSearchResults.filter((u) => u.id !== user?.id).map((u) => (
                   <button
                     key={u.id}
                     onClick={() => handleStartChat(u)}
@@ -221,12 +223,10 @@ export function ConversationList() {
                   </button>
                 ))}
               </div>
-            ) : searchQuery.length > 0 ? (
+            ) : modalSearchQuery.length > 0 ? (
               <p className="text-center text-sm text-gray-500 py-6">No users found</p>
             ) : (
-              <p className="text-center text-sm text-gray-400 py-6">
-                Type to search for users
-              </p>
+              <p className="text-center text-sm text-gray-500 py-6">Type a name to search</p>
             )}
           </div>
         </div>
