@@ -106,16 +106,22 @@ export async function endCall(callId: string, userId: string) {
 
   await callsRepository.updateParticipantStatus(callId, userId, 'LEFT', 'leftAt');
 
-  const remainingParticipants = call.participants.filter(
-    (p) => p.userId !== userId && (p.status === 'ACCEPTED' || p.status === 'RINGING')
-  );
-
-  const hasAcceptedParticipants = call.participants.some(
+  // Count accepted participants still in the call (excluding the user who just left)
+  const remainingAccepted = call.participants.filter(
     (p) => p.userId !== userId && p.status === 'ACCEPTED'
   );
 
-  // End the call if no one is left, or if the caller leaves before anyone has accepted
-  const shouldEndCall = remainingParticipants.length === 0 || (!hasAcceptedParticipants && userId === call.startedById);
+  const hasAcceptedParticipants = remainingAccepted.length > 0;
+
+  // End the entire call when:
+  // 1. No one accepted remains (0 accepted left after this user leaves), OR
+  // 2. Only 1 accepted user would remain — a call needs ≥2 active participants to continue
+  //    (covers Case 1: direct call with 2 people, Case 2: group call drops to 2 then one leaves)
+  // 3. The caller leaves before anyone accepted (unanswered call)
+  const remainingActiveCount = remainingAccepted.length;
+  const shouldEndCall =
+    remainingActiveCount <= 1 ||
+    (!hasAcceptedParticipants && userId === call.startedById);
   const endedAt = new Date();
 
   let updatedCall;
