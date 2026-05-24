@@ -16,6 +16,8 @@ model User {
   dob          DateTime?
   bio          String?
   socialLinks  Json?
+  designation  String?
+  department   String?
   isOnline     Boolean   @default(false)
   lastSeenAt   DateTime?
   createdAt    DateTime  @default(now())
@@ -91,6 +93,7 @@ model CallParticipant {
   status   CallParticipantStatus @default(RINGING)
   joinedAt DateTime?
   leftAt   DateTime?
+  isHidden Boolean               @default(false)
 
   call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

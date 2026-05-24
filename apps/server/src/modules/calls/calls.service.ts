@@ -222,3 +222,13 @@ export async function inviteToCall(callId: string, inviterId: string, targetUser
   return { call: updatedCall, invitedUserIds: newTargetIds, inviter };
 }
 
+export async function getCallHistory(userId: string) {
+  const history = await callsRepository.getCallHistory(userId);
+  return history;
+}
+
+export async function removeFromView(callId: string, userId: string) {
+  await callsRepository.hideCall(callId, userId);
+  return { success: true };
+}
+

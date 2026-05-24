@@ -13,8 +13,9 @@ import { CallControls } from './CallControls';
 import { CallStatusBanner } from './CallStatusBanner';
 import { ParticipantGrid } from './ParticipantGrid';
 import { CallDurationTimer } from './CallDurationTimer';
-
 import { InvitePeopleModal } from './InvitePeopleModal';
+import { getSocket } from '@/lib/socket';
+import { SOCKET_EVENTS } from '@/types/socket.types';
 
 interface CallScreenProps {
   call: Call;
@@ -88,6 +89,7 @@ export function CallScreen({ call }: CallScreenProps) {
   const { fetchToken, tokenData, isLoading, error } = useLiveKitToken();
   const { endCall } = useCalls();
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [currentCall, setCurrentCall] = useState<Call>(call);
 
   useEffect(() => {
     fetchToken(call.id).catch((err) => {
@@ -95,10 +97,39 @@ export function CallScreen({ call }: CallScreenProps) {
     });
   }, [call.id, fetchToken]);
 
+  // Listen for CALL_ENDED — navigate away for everyone when call terminates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleCallEnded = ({ call: updatedCall }: { call: Call }) => {
+      if (updatedCall.id === call.id) {
+        router.push(`/chat/${updatedCall.conversationId}`);
+      }
+    };
+
+    // Update participant list when someone leaves but call continues
+    const handleParticipantLeft = ({ call: updatedCall }: { call: Call; leftUserId: string }) => {
+      if (updatedCall.id === call.id) {
+        setCurrentCall(updatedCall);
+      }
+    };
+
+    socket.on(SOCKET_EVENTS.CALL_ENDED, handleCallEnded);
+    socket.on(SOCKET_EVENTS.CALL_PARTICIPANT_LEFT, handleParticipantLeft);
+    return () => {
+      socket.off(SOCKET_EVENTS.CALL_ENDED, handleCallEnded);
+      socket.off(SOCKET_EVENTS.CALL_PARTICIPANT_LEFT, handleParticipantLeft);
+    };
+  }, [call.id, router]);
+
+  // Only emit the leave/end event — do NOT navigate here.
+  // Navigation is handled by the CALL_ENDED socket event above.
+  // This way, in a group call with ≥3 participants, the leaving user
+  // navigates away (server sends them CALL_ENDED) while others stay.
   const handleEndCall = useCallback(() => {
     endCall(call.id);
-    router.push(`/chat/${call.conversationId}`);
-  }, [call.id, call.conversationId, endCall, router]);
+  }, [call.id, endCall]);
 
   const handleError = useCallback((err: Error) => {
     if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
@@ -165,7 +196,7 @@ export function CallScreen({ call }: CallScreenProps) {
         onError={handleError}
         style={{ height: '100dvh' }}
       >
-        <CallRoomContent call={call} onEndCall={handleEndCall} />
+        <CallRoomContent call={currentCall} onEndCall={handleEndCall} />
       </LiveKitRoom>
     </div>
   );

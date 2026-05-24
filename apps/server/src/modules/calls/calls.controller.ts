@@ -1,6 +1,15 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../core/asyncHandler';
-import { createCall, getCallById, acceptCall, rejectCall, endCall, inviteToCall } from './calls.service';
+import { 
+  createCall, 
+  getCallById, 
+  acceptCall, 
+  rejectCall, 
+  endCall, 
+  inviteToCall,
+  getCallHistory as getCallHistoryService,
+  removeFromView as removeFromViewService
+} from './calls.service';
 import { ApiError } from '../../errors/ApiError';
 import { CallType } from '@prisma/client';
 
@@ -37,7 +46,16 @@ export const endCallHandler = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const inviteUsersHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { targetUserIds } = req.body;
-  const result = await inviteToCall(req.params.callId, req.user!.id, targetUserIds);
-  res.json({ success: true, data: result });
+  const { call, invitedUserIds } = await inviteToCall(req.params.callId, req.user!.id, req.body.targetUserIds);
+  res.status(200).json({ success: true, data: { call, invitedUserIds } });
+});
+
+export const getCallHistory = asyncHandler(async (req: Request, res: Response) => {
+  const history = await getCallHistoryService(req.user!.id);
+  res.status(200).json({ success: true, data: { history } });
+});
+
+export const removeFromView = asyncHandler(async (req: Request, res: Response) => {
+  await removeFromViewService(req.params.callId, req.user!.id);
+  res.status(200).json({ success: true });
 });

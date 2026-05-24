@@ -27,7 +27,7 @@ export const callsRepository = {
         participants: {
           create: [
             { userId: data.startedById, status: 'ACCEPTED', joinedAt: new Date() },
-            ...targetUserIds.map((userId) => ({ userId, status: 'RINGING' })),
+            ...targetUserIds.map((userId) => ({ userId, status: 'RINGING' as any })),
           ],
         },
       },
@@ -105,6 +105,55 @@ export const callsRepository = {
         userId,
         status: 'RINGING',
       })),
+    });
+  },
+
+  getCallHistory(userId: string) {
+    return prisma.call.findMany({
+      where: {
+        participants: {
+          some: {
+            userId,
+            isHidden: false,
+          },
+        },
+      },
+      orderBy: [
+        { startedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      include: {
+        conversation: {
+          include: {
+            members: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    avatarUrl: true,
+                    designation: true,
+                    department: true,
+                  }
+                }
+              }
+            }
+          }
+        },
+        startedBy: { select: { id: true, name: true, avatarUrl: true, designation: true, department: true } },
+        participants: {
+          include: {
+            user: { select: { id: true, name: true, avatarUrl: true, designation: true, department: true } }
+          }
+        }
+      },
+    });
+  },
+
+  hideCall(callId: string, userId: string) {
+    return prisma.callParticipant.updateMany({
+      where: { callId, userId },
+      data: { isHidden: true },
     });
   }
 };

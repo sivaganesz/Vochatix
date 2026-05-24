@@ -185,7 +185,10 @@ export function handleCallEvents(io: Server, socket: AuthenticatedSocket): void 
         }
         logger.info(`Call ${callId} ended because user ${userId} left. Status: ${call.status}`);
       } else {
-        // Broadcast participant left to everyone else in the call
+        // The leaving user needs to navigate away — send them CALL_ENDED personally
+        io.to(`user:${userId}`).emit(SOCKET_EVENTS.CALL_ENDED, { call });
+
+        // Notify remaining participants that someone left (call still ongoing for them)
         for (const participant of call.participants) {
           if (participant.userId !== userId) {
             io.to(`user:${participant.userId}`).emit(SOCKET_EVENTS.CALL_PARTICIPANT_LEFT, { call, leftUserId: userId });
