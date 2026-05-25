@@ -10,10 +10,21 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
+    "@fullcalendar/timegrid": "^6.1.20",
     "@livekit/components-react": "^2.9.21",
     "@livekit/components-styles": "^1.2.0",
+    "@vochatix/config": "*",
+    "@vochatix/logger": "*",
+    "@vochatix/schemas": "*",
+    "@vochatix/socket-contracts": "*",
+    "@vochatix/types": "*",
+    "@vochatix/utils": "*",
     "autoprefixer": "^10.5.0",
     "axios": "^1.16.1",
+    "date-fns": "^4.3.0",
     "livekit-client": "^2.19.0",
     "lucide-react": "^0.395.0",
     "next": "^14.2.35",
@@ -22,13 +33,7 @@
     "react-hook-form": "^7.76.0",
     "socket.io-client": "^4.8.3",
     "zod": "^3.25.76",
-    "zustand": "^4.5.7",
-    "@vochatix/types": "*",
-    "@vochatix/schemas": "*",
-    "@vochatix/socket-contracts": "*",
-    "@vochatix/config": "*",
-    "@vochatix/utils": "*",
-    "@vochatix/logger": "*"
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
