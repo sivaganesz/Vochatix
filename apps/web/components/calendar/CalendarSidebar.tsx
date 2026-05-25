@@ -35,7 +35,7 @@ export function CalendarSidebar() {
   const renderDays = () => {
     const dateFormat = 'eeeee'; // Narrow day of week (S, M, T...)
     const days = [];
-    let startDate = startOfWeek(currentMonth);
+    const startDate = startOfWeek(currentMonth);
 
     for (let i = 0; i < 7; i++) {
       days.push(

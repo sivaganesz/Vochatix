@@ -7,6 +7,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Lock, Video } from 'lucide-react';
 import { useCalendarStore } from '@/store/calendar.store';
+import { EventContentArg } from '@fullcalendar/core';
 
 export function MainCalendarGrid() {
   const calendarRef = useRef<FullCalendar>(null);
@@ -43,7 +44,7 @@ export function MainCalendarGrid() {
   }));
 
   // Custom Event Card Render
-  const renderEventContent = (eventInfo: any) => {
+  const renderEventContent = (eventInfo: EventContentArg) => {
     const { title, extendedProps } = eventInfo.event;
     const { isPrivate, isOnlineMeeting } = extendedProps;
 
